@@ -1,0 +1,275 @@
+/* Global Styling & Variables */
+:root {
+    --primary-color: #007BFF;
+    --primary-hover: #0056b3;
+    --secondary-color: #6c757d;
+    --background-color: #f4f7f6;
+    --card-background: #ffffff;
+    --text-color: #333;
+    --border-color: #dee2e6;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+/* Auth Pages (Login & Register) */
+.auth-page {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+.auth-page.active {
+    display: flex;
+}
+
+.auth-card {
+    background-color: var(--card-background);
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+}
+
+.auth-card h2 {
+    margin-bottom: 10px;
+    color: var(--primary-color);
+}
+.auth-card p {
+    margin-bottom: 20px;
+    color: var(--secondary-color);
+}
+
+.input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+.input-group input,
+.input-group select,
+.input-group textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    font-size: 1rem;
+}
+
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.3s;
+}
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    width: 100%;
+}
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.auth-switch {
+    margin-top: 20px;
+}
+.auth-switch a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* Dashboard Layout */
+.dashboard {
+    display: none; /* Hidden by default */
+    grid-template-columns: 250px 1fr;
+    min-height: 100vh;
+}
+.dashboard.active {
+    display: grid;
+}
+
+.sidebar {
+    background-color: #1e293b;
+    color: white;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+.sidebar-header h3 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+.sidebar-nav a {
+    display: block;
+    color: #cbd5e1;
+    text-decoration: none;
+    padding: 15px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+.sidebar-nav a:hover,
+.sidebar-nav a.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+.sidebar-nav a.logout {
+    margin-top: auto;
+}
+
+.main-content {
+    background-color: var(--background-color);
+    overflow-y: auto;
+}
+
+.main-header {
+    background-color: var(--card-background);
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+.user-profile strong {
+    color: var(--primary-color);
+}
+
+.content-wrapper {
+    padding: 30px;
+}
+.page-content {
+    display: none;
+}
+.page-content.active {
+    display: block;
+}
+
+/* Components */
+.card {
+    background-color: var(--card-background);
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    margin-bottom: 25px;
+}
+.card h3 {
+    margin-bottom: 20px;
+}
+
+/* Tables */
+.table-container {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+th {
+    background-color: #f8f9fa;
+}
+.status {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+    text-align: center;
+}
+.status.pending { background-color: var(--warning-color); }
+.status.approved { background-color: var(--success-color); }
+.status.rejected { background-color: var(--danger-color); }
+
+/* Lab Monitoring */
+.lab-monitoring-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 20px;
+}
+.desk-item {
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.desk-item:hover {
+    transform: translateY(-5px);
+}
+.desk-ok { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;}
+.desk-rusak { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;}
+
+/* Modal Styling */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+}
+.modal.active {
+    display: flex;
+}
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 800px;
+    position: relative;
+}
+.close-button {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
+    .sidebar {
+        /* In a real app, this would become a hamburger menu */
+        display: none; 
+    }
+    .main-header, .content-wrapper {
+        padding: 15px;
+    }
+}
