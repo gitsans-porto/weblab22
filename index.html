@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIALAB - Sistem Informasi Laboratorium</title>
+    <link rel="stylesheet" href="main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+</head>
+<body>
+
+    <div id="app-container">
+
+        <div id="login-page" class="auth-page active">
+            <div class="auth-card">
+                <h2>Selamat Datang di SIALAB</h2>
+                <p>Silakan login untuk melanjutkan</p>
+                <form id="login-form">
+                    <div class="input-group">
+                        <label for="login-role">Login Sebagai</label>
+                        <select id="login-role" required>
+                            <option value="mahasiswa">Mahasiswa</option>
+                            <option value="dosen">Dosen</option>
+                            <option value="operator">Operator</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="login-id">NIM / NIP / Username</label>
+                        <input type="text" id="login-id" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <p class="auth-switch">Belum punya akun? <a href="#" id="show-register">Register di sini</a></p>
+                </form>
+            </div>
+        </div>
+
+        <div id="register-page" class="auth-page">
+             <div class="auth-card">
+                <h2>Registrasi Akun Baru</h2>
+                <p>Isi data diri Anda dengan benar</p>
+                <form id="register-form">
+                    <div class="input-group">
+                        <label for="register-role">Jenis User</label>
+                        <select id="register-role" required>
+                            <option value="mahasiswa">Mahasiswa</option>
+                            <option value="dosen">Dosen</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="register-name">Nama Lengkap</label>
+                        <input type="text" id="register-name" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="register-id">NIM / NIP</label>
+                        <input type="text" id="register-id" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="register-password-verify">Verifikasi Ulang Password</label>
+                        <input type="password" id="register-password-verify" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button>
+                    <p class="auth-switch">Sudah punya akun? <a href="#" id="show-login">Login di sini</a></p>
+                </form>
+            </div>
+        </div>
+
+        <div id="user-dashboard" class="dashboard">
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h3>SIALAB</h3>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="#" class="nav-link active" data-target="user-beranda">Beranda</a>
+                    <a href="#" class="nav-link" data-target="user-jadwal">Jadwal Lab</a>
+                    <a href="#" class="nav-link" data-target="user-info">Informasi Lab</a>
+                    <a href="#" class="nav-link" data-target="user-akun">Akun Pengguna</a>
+                    <a href="#" id="user-logout" class="nav-link logout">Logout</a>
+                </nav>
+            </aside>
+            <main class="main-content">
+                <header class="main-header">
+                    <h2 id="user-page-title">Beranda</h2>
+                    <div class="user-profile">
+                        <span>Halo, <strong id="user-name-display">Nama Pengguna</strong></span>
+                    </div>
+                </header>
+
+                <div class="content-wrapper">
+                    <section id="user-beranda" class="page-content active">
+                        <div class="card">
+                            <h3>Form Peminjaman Laboratorium</h3>
+                            <form id="peminjaman-form">
+                                </form>
+                        </div>
+                        <div class="card">
+                            <h3>Status Peminjaman Terkini</h3>
+                            <div id="status-peminjaman-terkini">
+                                <p>Tidak ada peminjaman aktif.</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3>Riwayat Peminjaman Terakhir</h3>
+                            <ul id="riwayat-peminjaman-terakhir">
+                                <li>Tidak ada riwayat.</li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <section id="user-jadwal" class="page-content">
+                        <h3>Jadwal Penggunaan Laboratorium</h3>
+                         <div class="filter-bar">
+                            <select id="lab-choice-filter">
+                               <option value="all">Semua Lab</option>
+                               <option value="pemdas1">Lab Pemrograman Dasar 1</option>
+                               <option value="mandiri">Lab Mandiri</option>
+                               <option value="server">Lab Server</option>
+                            </select>
+                            <input type="date" id="date-filter">
+                        </div>
+                        <div id="jadwal-lab-container">
+                            </div>
+                    </section>
+
+                    <section id="user-info" class="page-content">
+                         <h3>Informasi Laboratorium</h3>
+                         <div id="info-lab-list" class="lab-list">
+                             </div>
+                    </section>
+
+                    <section id="user-akun" class="page-content">
+                        <div class="card">
+                            <h3>Layanan Customer Service</h3>
+                            <p>Laporkan masalah atau kendala terkait laboratorium.</p>
+                            <form id="cs-report-form">
+                                <textarea placeholder="Deskripsikan masalah Anda di sini..." rows="5" required></textarea>
+                                <button type="submit" class="btn">Kirim Laporan</button>
+                            </form>
+                        </div>
+                         <div class="card">
+                            <h3>Semua Riwayat Peminjaman</h3>
+                            <div id="semua-riwayat">
+                                </div>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+
+        <div id="operator-dashboard" class="dashboard">
+             <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h3>SIALAB - OPERATOR</h3>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="#" class="nav-link active" data-target="op-dashboard">Dashboard</a>
+                    <a href="#" class="nav-link" data-target="op-peminjaman">Manajemen Peminjaman</a>
+                    <a href="#" class="nav-link" data-target="op-jadwal">Manajemen Jadwal</a>
+                    <a href="#" class="nav-link" data-target="op-pengguna">Manajemen Pengguna</a>
+                    <a href="#" class="nav-link" data-target="op-inventaris">Inventaris & Monitoring</a>
+                    <a href="#" class="nav-link" data-target="op-cs">Tiket & CS</a>
+                    <a href="#" class="nav-link" data-target="op-laporan">Laporan</a>
+                    <a href="#" id="operator-logout" class="nav-link logout">Logout</a>
+                </nav>
+            </aside>
+            <main class="main-content">
+                 <header class="main-header">
+                    <h2 id="operator-page-title">Dashboard</h2>
+                     <div class="user-profile">
+                        <span>Halo, <strong>Operator</strong></span>
+                    </div>
+                </header>
+
+                 <div class="content-wrapper">
+                    <section id="op-dashboard" class="page-content active">
+                        <div class="stats-grid">
+                           <div class="stat-card"><h4>Peminjaman Baru</h4><p>5</p></div>
+                           <div class="stat-card"><h4>Menunggu Persetujuan</h4><p>3</p></div>
+                           <div class="stat-card"><h4>Peminjaman Aktif</h4><p>8</p></div>
+                           <div class="stat-card"><h4>Laporan CS Baru</h4><p>2</p></div>
+                        </div>
+                        <div class="card">
+                           <h3>Grafik Penggunaan Lab (Mingguan)</h3>
+                           <canvas id="usageChart"></canvas>
+                        </div>
+                    </section>
+
+                    <section id="op-peminjaman" class="page-content">
+                        <h3>Daftar Peminjaman</h3>
+                        <div class="table-container">
+                            <table id="peminjaman-table">
+                               <thead>
+                                   <tr>
+                                       <th>ID</th>
+                                       <th>Peminjam</th>
+                                       <th>Lab</th>
+                                       <th>Waktu</th>
+                                       <th>Status</th>
+                                       <th>Aksi</th>
+                                   </tr>
+                               </thead>
+                               <tbody>
+                                   </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section id="op-pengguna" class="page-content">
+                        <h3>Daftar Pengguna Terdaftar</h3>
+                         <div class="table-container">
+                            <table id="pengguna-table">
+                               <thead>
+                                   <tr>
+                                       <th>Nama</th>
+                                       <th>NIM/NIP</th>
+                                       <th>Role</th>
+                                       <th>Status Akun</th>
+                                       <th>Aksi</th>
+                                   </tr>
+                               </thead>
+                               <tbody>
+                                   </tbody>
+                            </table>
+                        </div>
+                    </section>
+                    
+                     <section id="op-inventaris" class="page-content">
+                         <h3>Monitoring Lab Real-time</h3>
+                         <p>Pilih lab untuk melihat denah dan status perangkat.</p>
+                         <div id="monitoring-lab-view" class="lab-monitoring-grid">
+                            </div>
+                     </section>
+                 </div>
+            </main>
+        </div>
+        
+    </div> <div id="lab-detail-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 id="modal-lab-name">Detail Lab</h3>
+            <div id="modal-lab-body">
+                </div>
+        </div>
+    </div>
+
+
+    <script src="main.js"></script>
+</body>
+                          </html>
