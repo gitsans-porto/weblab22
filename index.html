@@ -3,28 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <title>Login Akses</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 100px;
+    }
+    #mainPage {
+      display: none;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+    }
+  </style>
 </head>
 <body>
-  <h2>Halaman Login</h2>
-  <input type="text" id="kode" placeholder="Masukkan kode akses">
-  <button onclick="cekLogin()">Login</button>
-  <p id="pesan"></p>
+  <div id="loginPage">
+    <h2>Halaman Login</h2>
+    <input type="text" id="kode" placeholder="Masukkan kode akses">
+    <button onclick="cekLogin()">Login</button>
+    <p id="pesan"></p>
+  </div>
+
+  <div id="mainPage">
+    <h1>Selamat Datang 🎉</h1>
+    <p>Kamu berhasil login dengan kode akses yang valid!</p>
+  </div>
 
   <script>
     async function cekLogin() {
       let kode = document.getElementById("kode").value;
       let url = "https://script.google.com/macros/s/AKfycby1qzX1mBK6ZDwEthGMR7OFZ4RIflDh6vnEyPuXw_c5Fn0O75po2hxUDx65KBfEPvkEWQ/exec" + encodeURIComponent(kode); 
-      // ganti dengan URL Apps Script milikmu
+      // ganti dengan URL Web App Google Apps Script kamu
 
       let res = await fetch(url);
       let text = await res.text();
 
       if (text === "success") {
-        document.getElementById("pesan").innerText = "Login berhasil!";
-        // Redirect ke halaman utama
-        window.location.href = "halaman-utama.html";
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("mainPage").style.display = "block";
       } else {
-        document.getElementById("pesan").innerText = "Kode salah atau tidak aktif!";
+        document.getElementById("pesan").innerText = "Kode salah atau sudah dipakai!";
       }
     }
   </script>
