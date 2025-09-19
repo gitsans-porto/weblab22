@@ -1,51 +1,71 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Login Akses</title>
+  <meta charset="utf-8" />
+  <title>Login Akses (JSONP)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 100px;
-    }
-    #mainPage {
-      display: none;
-    }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-    }
+    body { font-family: Arial; text-align:center; margin-top:80px; }
+    #mainPage { display:none; }
   </style>
 </head>
 <body>
   <div id="loginPage">
     <h2>Halaman Login</h2>
-    <input type="text" id="kode" placeholder="Masukkan kode akses">
-    <button onclick="cekLogin()">Login</button>
-    <p id="pesan"></p>
+    <input id="kode" placeholder="Masukkan kode akses" />
+    <button id="btn">Login</button>
+    <p id="pesan" style="color:red"></p>
   </div>
 
   <div id="mainPage">
     <h1>Selamat Datang 🎉</h1>
-    <p>Kamu berhasil login dengan kode akses yang valid!</p>
+    <p>Kamu berhasil login.</p>
   </div>
 
   <script>
-    async function cekLogin() {
-      let kode = document.getElementById("kode").value;
-      let url = "https://script.google.com/macros/s/AKfycby1qzX1mBK6ZDwEthGMR7OFZ4RIflDh6vnEyPuXw_c5Fn0O75po2hxUDx65KBfEPvkEWQ/exec" + encodeURIComponent(kode); 
-      // ganti dengan URL Web App Google Apps Script kamu
+    // Ganti ini dengan URL Web App Apps Script kamu (exec)
+    var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzaxz8OqoqarHwjTkhkj6zxTIpBF-UaQ9lsj2aUu0sgZtxxykcGrfxjhSmPGIdK8bdIzg/exec";
 
-      let res = await fetch(url);
-      let text = await res.text();
+    document.getElementById('btn').addEventListener('click', cekLogin);
 
-      if (text === "success") {
-        document.getElementById("loginPage").style.display = "none";
-        document.getElementById("mainPage").style.display = "block";
-      } else {
-        document.getElementById("pesan").innerText = "Kode salah atau sudah dipakai!";
-      }
+    function cekLogin() {
+      var kode = document.getElementById('kode').value.trim();
+      if (!kode) { showMsg('Masukkan kode akses'); return; }
+
+      // Hapus script JSONP lama jika ada
+      var old = document.getElementById('jsonpScript');
+      if (old) old.parentNode.removeChild(old);
+
+      // definisikan callback global sementara
+      window.__handleJsonp = function(response) {
+        cleanupJsonp();
+        if (response && response.status === 'success') {
+          document.getElementById('loginPage').style.display = 'none';
+          document.getElementById('mainPage').style.display = 'block';
+        } else {
+          showMsg('Kode salah atau sudah dipakai!');
+        }
+      };
+
+      // buat tag <script> untuk JSONP
+      var s = document.createElement('script');
+      s.id = 'jsonpScript';
+      s.src = SCRIPT_URL + '?kode=' + encodeURIComponent(kode) + '&callback=__handleJsonp';
+      s.onerror = function() {
+        cleanupJsonp();
+        showMsg('Gagal terhubung ke server (network/error).');
+      };
+      document.body.appendChild(s);
+      showMsg('Memeriksa kode...'); // optional
+    }
+
+    function cleanupJsonp() {
+      var s = document.getElementById('jsonpScript');
+      if (s) s.parentNode.removeChild(s);
+      try { delete window.__handleJsonp; } catch(e){ window.__handleJsonp = undefined; }
+    }
+
+    function showMsg(m) {
+      document.getElementById('pesan').textContent = m;
     }
   </script>
 </body>
