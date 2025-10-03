@@ -1,72 +1,155 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <title>Login Akses (JSONP)</title>
-  <style>
-    body { font-family: Arial; text-align:center; margin-top:80px; }
-    #mainPage { display:none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIM - Sistem Informasi Manajemen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .progress-bar { transition: width 0.3s ease-in-out; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-content::-webkit-scrollbar { width: 8px; }
+        .modal-content::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .modal-content::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .details-container { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
+        .details-container.open { max-height: 1000px; }
+        .chevron { transition: transform 0.3s ease; }
+        .open .chevron { transform: rotate(90deg); }
+        .user-select-container { position: relative; }
+        .user-select-dropdown { display: none; position: absolute; background-color: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; z-index: 1000; width: 100%; }
+        .user-select-dropdown.show { display: block; }
+        .selected-user-tag { display: inline-flex; align-items: center; background-color: #e0e7ff; color: #4338ca; border-radius: 9999px; padding: 4px 8px; margin: 2px; font-size: 0.875rem; }
+    </style>
 </head>
-<body>
-  <div id="loginPage">
-    <h2>Halaman Login</h2>
-    <input id="kode" placeholder="Masukkan kode akses" />
-    <button id="btn">Login</button>
-    <p id="pesan" style="color:red"></p>
-  </div>
+<body class="bg-gray-50 min-h-screen">
 
-  <div id="mainPage">
-    <h1>Selamat Datang 🎉</h1>
-    <p>Kamu berhasil login.</p>
-  </div>
+    <!-- Login View -->
+    <div id="loginView" class="flex items-center justify-center min-h-screen">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md mx-4 text-center">
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">Sistem Informasi Manajemen</h1>
+            <p class="text-gray-600 mb-6">Silakan masukkan kode akses unik Anda.</p>
+            <form id="loginForm">
+                <input type="password" id="accessCode" class="w-full text-center tracking-widest font-bold text-lg border-gray-300 rounded-lg p-3" placeholder="••••••">
+                <p id="loginError" class="text-red-500 text-sm mt-2 hidden">Kode akses tidak ditemukan.</p>
+                <button type="submit" class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-all">Masuk</button>
+            </form>
+        </div>
+    </div>
 
-  <script>
-    // Ganti ini dengan URL Web App Apps Script kamu (exec)
-    var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzaxz8OqoqarHwjTkhkj6zxTIpBF-UaQ9lsj2aUu0sgZtxxykcGrfxjhSmPGIdK8bdIzg/exec";
+    <!-- Main Application View (Initially Hidden) -->
+    <div id="mainApp" class="hidden">
+        <nav class="bg-white shadow-md border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <h1 class="text-xl font-bold text-gray-900">SIM Dashboard</h1>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                           <div id="currentUser" class="font-semibold text-gray-800"></div>
+                           <div id="currentUserRole" class="text-sm text-gray-500"></div>
+                        </div>
+                        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm font-medium">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
 
-    document.getElementById('btn').addEventListener('click', cekLogin);
+        <div id="contentArea" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Dynamic Content based on Role -->
+        </div>
+    </div>
+    
+    <!-- Modals will be injected here by JS -->
 
-    function cekLogin() {
-      var kode = document.getElementById('kode').value.trim();
-      if (!kode) { showMsg('Masukkan kode akses'); return; }
+    <script>
+    // --- DATABASE SIMULATION ---
+    let divisions = [
+        { id: 1, name: 'IT' }, { id: 2, name: 'Marketing' }, { id: 3, name: 'HR' }
+    ];
+    let users = [
+        { id: 1, name: 'Admin Utama', divisionId: 1, accessCode: 'admin', role: 'admin' },
+        { id: 2, name: 'Budi Santoso', divisionId: 1, accessCode: 'pimpinan', role: 'pimpinan' },
+        { id: 3, name: 'Citra Lestari', divisionId: 1, accessCode: 'citra123', role: 'anggota' },
+        { id: 4, name: 'Doni Firmansyah', divisionId: 2, accessCode: 'doni123', role: 'anggota' },
+        { id: 5, name: 'Eka Putri', divisionId: 2, accessCode: 'eka123', role: 'anggota' },
+        { id: 6, name: 'Fajar Nugraha', divisionId: 3, accessCode: 'fajar123', role: 'anggota' }
+    ];
+    let events = [
+        { id: 1, name: 'Peluncuran Produk Q4', date: '2025-12-15', committeeName: 'Tim Peluncuran', chairmanId: 3, memberIds: [4, 5] }
+    ];
+    let tasks = [
+        { id: 1, eventId: 1, name: 'Siapkan materi presentasi', deadline: '2025-11-30', assignedMemberIds: [4], status: 'completed', photoUrl: 'https://placehold.co/600x400/1D4ED8/FFFFFF?text=Materi+Selesai' },
+        { id: 2, eventId: 1, name: 'Buat video teaser produk', deadline: '2025-12-05', assignedMemberIds: [4, 5], status: 'pending-confirmation', photoUrl: 'https://placehold.co/600x400/D946EF/FFFFFF?text=Video+Teaser' },
+        { id: 3, eventId: 1, name: 'Finalisasi daftar undangan', deadline: '2025-12-10', assignedMemberIds: [5], status: 'in-progress', photoUrl: null }
+    ];
 
-      // Hapus script JSONP lama jika ada
-      var old = document.getElementById('jsonpScript');
-      if (old) old.parentNode.removeChild(old);
+    let loggedInUser = null;
+    
+    // --- CORE APP LOGIC ---
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+    });
 
-      // definisikan callback global sementara
-      window.__handleJsonp = function(response) {
-        cleanupJsonp();
-        if (response && response.status === 'success') {
-          document.getElementById('loginPage').style.display = 'none';
-          document.getElementById('mainPage').style.display = 'block';
+    function handleLogin(e) {
+        e.preventDefault();
+        const code = document.getElementById('accessCode').value;
+        const user = users.find(u => u.accessCode === code);
+        if (user) {
+            loggedInUser = user;
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('currentUser').textContent = loggedInUser.name;
+            const divisionName = divisions.find(d => d.id === loggedInUser.divisionId)?.name || 'N/A';
+            document.getElementById('currentUserRole').textContent = `${loggedInUser.role.charAt(0).toUpperCase() + loggedInUser.role.slice(1)} - Divisi ${divisionName}`;
+            renderDashboard();
         } else {
-          showMsg('Kode salah atau sudah dipakai!');
+            document.getElementById('loginError').classList.remove('hidden');
         }
-      };
-
-      // buat tag <script> untuk JSONP
-      var s = document.createElement('script');
-      s.id = 'jsonpScript';
-      s.src = SCRIPT_URL + '?kode=' + encodeURIComponent(kode) + '&callback=__handleJsonp';
-      s.onerror = function() {
-        cleanupJsonp();
-        showMsg('Gagal terhubung ke server (network/error).');
-      };
-      document.body.appendChild(s);
-      showMsg('Memeriksa kode...'); // optional
+    }
+    
+    function logout() {
+        loggedInUser = null;
+        document.getElementById('loginView').classList.remove('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('accessCode').value = '';
     }
 
-    function cleanupJsonp() {
-      var s = document.getElementById('jsonpScript');
-      if (s) s.parentNode.removeChild(s);
-      try { delete window.__handleJsonp; } catch(e){ window.__handleJsonp = undefined; }
+    function renderDashboard() {
+        const contentArea = document.getElementById('contentArea');
+        switch (loggedInUser.role) {
+            case 'admin': contentArea.innerHTML = getAdminView(); renderAdminTables(); break;
+            case 'pimpinan': contentArea.innerHTML = getPimpinanView(); renderPimpinanEventProgress(); break;
+            case 'anggota': contentArea.innerHTML = getAnggotaView(); renderAnggotaEventList(); break;
+        }
     }
+    
+    // --- TEMPLATES & VIEWS ---
+    const getAdminView = () => `<div class="space-y-8"><div><h2 class="text-2xl font-bold mb-4">Kelola Divisi</h2>...</div><div><h2 class="text-2xl font-bold mb-4">Kelola Anggota</h2>...</div></div>`;
+    const getPimpinanView = () => `<div class="space-y-8">...</div>`;
+    const getAnggotaView = () => `<div class="space-y-8">...</div>`;
+    // More templates here...
 
-    function showMsg(m) {
-      document.getElementById('pesan').textContent = m;
-    }
-  </script>
+    // --- ADMIN FUNCTIONS ---
+    function renderAdminTables() { /* Renders division and user tables */ }
+    // CRUD functions for admin...
+
+    // --- PIMPINAN FUNCTIONS ---
+    function renderPimpinanEventProgress() { /* Renders event progress for pimpinan */ }
+    function openEventModal() { /* Opens modal to create new event */ }
+    // Other pimpinan functions...
+
+    // --- ANGGOTA & KETUA FUNCTIONS ---
+    function renderAnggotaEventList() { /* Renders list of events for a member */ }
+    function showEventDetail(eventId) { /* Shows detailed view of an event */ }
+    // Other member/chair functions...
+
+    // --- HELPER & UTILITY FUNCTIONS ---
+    function formatDate(dateStr) { return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }); }
+    // More helpers...
+    </script>
 </body>
 </html>
+
