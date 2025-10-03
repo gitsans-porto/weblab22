@@ -22,17 +22,18 @@
         .user-select-dropdown { display: none; position: absolute; background-color: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; z-index: 1000; width: 100%; }
         .user-select-dropdown.show { display: block; }
         .selected-user-tag { display: inline-flex; align-items: center; background-color: #e0e7ff; color: #4338ca; border-radius: 9999px; padding: 4px 8px; margin: 2px; font-size: 0.875rem; }
+        .selected-user-tag button { margin-left: 6px; color: #4338ca; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
     <!-- Login View -->
-    <div id="loginView" class="flex items-center justify-center min-h-screen">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md mx-4 text-center">
+    <div id="loginView" class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md mx-auto text-center">
             <h1 class="text-2xl font-bold text-gray-800 mb-2">Sistem Informasi Manajemen</h1>
             <p class="text-gray-600 mb-6">Silakan masukkan kode akses unik Anda.</p>
             <form id="loginForm">
-                <input type="password" id="accessCode" class="w-full text-center tracking-widest font-bold text-lg border-gray-300 rounded-lg p-3" placeholder="••••••">
+                <input type="password" id="accessCode" class="w-full text-center tracking-widest font-bold text-lg border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 transition" placeholder="••••••">
                 <p id="loginError" class="text-red-500 text-sm mt-2 hidden">Kode akses tidak ditemukan.</p>
                 <button type="submit" class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-all">Masuk</button>
             </form>
@@ -41,10 +42,10 @@
 
     <!-- Main Application View (Initially Hidden) -->
     <div id="mainApp" class="hidden">
-        <nav class="bg-white shadow-md border-b">
+        <nav class="bg-white shadow-md border-b sticky top-0 z-40">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center h-16">
-                    <h1 class="text-xl font-bold text-gray-900">SIM Dashboard</h1>
+                    <h1 id="navTitle" class="text-xl font-bold text-gray-900">SIM Dashboard</h1>
                     <div class="flex items-center space-x-4">
                         <div class="text-right">
                            <div id="currentUser" class="font-semibold text-gray-800"></div>
@@ -61,7 +62,8 @@
         </div>
     </div>
     
-    <!-- Modals will be injected here by JS -->
+    <div id="modalContainer"></div>
+    <div id="notificationContainer"></div>
 
     <script>
     // --- DATABASE SIMULATION ---
@@ -86,11 +88,17 @@
     ];
 
     let loggedInUser = null;
+    let countdownIntervals = [];
     
     // --- CORE APP LOGIC ---
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.body.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-select-container')) {
+                document.querySelectorAll('.user-select-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
     });
 
     function handleLogin(e) {
@@ -115,40 +123,187 @@
         document.getElementById('loginView').classList.remove('hidden');
         document.getElementById('mainApp').classList.add('hidden');
         document.getElementById('accessCode').value = '';
+        document.getElementById('navTitle').textContent = 'SIM Dashboard';
+        stopAllCountdowns();
     }
 
     function renderDashboard() {
         const contentArea = document.getElementById('contentArea');
+        document.getElementById('navTitle').textContent = 'SIM Dashboard';
+        contentArea.innerHTML = ''; // Clear previous content
         switch (loggedInUser.role) {
-            case 'admin': contentArea.innerHTML = getAdminView(); renderAdminTables(); break;
-            case 'pimpinan': contentArea.innerHTML = getPimpinanView(); renderPimpinanEventProgress(); break;
-            case 'anggota': contentArea.innerHTML = getAnggotaView(); renderAnggotaEventList(); break;
+            case 'admin':
+                contentArea.innerHTML = getAdminView();
+                renderAdminTables();
+                break;
+            case 'pimpinan':
+                contentArea.innerHTML = getPimpinanView();
+                renderPimpinanEventProgress();
+                break;
+            case 'anggota':
+                contentArea.innerHTML = getAnggotaView();
+                renderAnggotaEventList();
+                break;
         }
     }
-    
+
     // --- TEMPLATES & VIEWS ---
-    const getAdminView = () => `<div class="space-y-8"><div><h2 class="text-2xl font-bold mb-4">Kelola Divisi</h2>...</div><div><h2 class="text-2xl font-bold mb-4">Kelola Anggota</h2>...</div></div>`;
-    const getPimpinanView = () => `<div class="space-y-8">...</div>`;
-    const getAnggotaView = () => `<div class="space-y-8">...</div>`;
-    // More templates here...
+    const getAdminView = () => `
+        <div class="space-y-12">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Kelola Divisi</h2>
+                    <button onclick="openDivisionModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">Tambah Divisi</button>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-md"><table class="min-w-full"><thead><tr class="border-b"><th class="text-left p-3">Nama Divisi</th><th class="text-left p-3">Aksi</th></tr></thead><tbody id="divisionTableBody"></tbody></table></div>
+            </div>
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Kelola Anggota</h2>
+                    <button onclick="openUserModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">Tambah Anggota</button>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-md"><table class="min-w-full"><thead><tr class="border-b"><th class="text-left p-3">Nama</th><th class="text-left p-3">Divisi</th><th class="text-left p-3">Kode Akses</th><th class="text-left p-3">Role</th><th class="text-left p-3">Aksi</th></tr></thead><tbody id="userTableBody"></tbody></table></div>
+            </div>
+        </div>`;
+
+    const getPimpinanView = () => `
+        <div>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Monitoring Event</h2>
+                <button onclick="openEventModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-700 text-base">Buat Event Baru</button>
+            </div>
+            <div id="pimpinanEventProgress" class="space-y-4"></div>
+        </div>`;
+
+    const getAnggotaView = () => `
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Event Saya</h2>
+            <div id="anggotaEventList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>`;
 
     // --- ADMIN FUNCTIONS ---
-    function renderAdminTables() { /* Renders division and user tables */ }
-    // CRUD functions for admin...
+    function renderAdminTables() {
+        // Render Divisions Table
+        const divisionTableBody = document.getElementById('divisionTableBody');
+        divisionTableBody.innerHTML = divisions.map(d => `
+            <tr class="border-b"><td class="p-3">${d.name}</td><td class="p-3 space-x-2"><button onclick="openDivisionModal(${d.id})">Edit</button><button onclick="deleteDivision(${d.id})">Hapus</button></td></tr>
+        `).join('');
+
+        // Render Users Table
+        const userTableBody = document.getElementById('userTableBody');
+        userTableBody.innerHTML = users.map(u => {
+            const divisionName = divisions.find(d => d.id === u.divisionId)?.name || 'N/A';
+            return `
+                <tr class="border-b"><td class="p-3">${u.name}</td><td class="p-3">${divisionName}</td><td class="p-3">${u.accessCode}</td><td class="p-3">${u.role}</td><td class="p-3 space-x-2"><button onclick="openUserModal(${u.id})">Edit</button><button onclick="deleteUser(${u.id})">Hapus</button></td></tr>
+            `;
+        }).join('');
+    }
+    // ... CRUD functions for admin (open modal, save, delete) ...
 
     // --- PIMPINAN FUNCTIONS ---
-    function renderPimpinanEventProgress() { /* Renders event progress for pimpinan */ }
-    function openEventModal() { /* Opens modal to create new event */ }
-    // Other pimpinan functions...
+    function renderPimpinanEventProgress() {
+        const container = document.getElementById('pimpinanEventProgress');
+        if (events.length === 0) {
+            container.innerHTML = `<div class="text-center text-gray-500 py-10 bg-white rounded-lg shadow-md">Belum ada event yang dibuat.</div>`; return;
+        }
+        container.innerHTML = events.map(event => {
+            const eventTasks = tasks.filter(t => t.eventId === event.id);
+            const completedTasks = eventTasks.filter(t => t.status === 'completed');
+            const progress = eventTasks.length > 0 ? Math.round((completedTasks.length / eventTasks.length) * 100) : 0;
+            return `
+                <div class="bg-white rounded-xl shadow-md p-6">
+                     <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">${event.name}</h3>
+                            <p class="text-sm text-gray-500">Kepanitiaan: ${event.committeeName}</p>
+                        </div>
+                        <button onclick="showEventDetail(${event.id})" class="text-blue-600 font-semibold">Lihat Detail</button>
+                     </div>
+                     <div class="mt-4"><div class="flex justify-between mb-1"><span class="text-base font-medium text-blue-700">Progres Event</span><span class="text-sm font-medium text-blue-700">${progress}%</span></div><div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-blue-600 h-2.5 rounded-full progress-bar" style="width: ${progress}%"></div></div></div>
+                </div>
+            `;
+        }).join('');
+    }
+    // ... Pimpinan modal and save functions ...
 
     // --- ANGGOTA & KETUA FUNCTIONS ---
-    function renderAnggotaEventList() { /* Renders list of events for a member */ }
-    function showEventDetail(eventId) { /* Shows detailed view of an event */ }
-    // Other member/chair functions...
+    function renderAnggotaEventList() {
+        const container = document.getElementById('anggotaEventList');
+        const myEvents = events.filter(e => e.chairmanId === loggedInUser.id || e.memberIds.includes(loggedInUser.id));
+        if (myEvents.length === 0) {
+            container.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10 bg-white rounded-lg shadow-md">Anda tidak terlibat dalam event apapun.</div>`; return;
+        }
+        container.innerHTML = myEvents.map(event => {
+            const isChairman = event.chairmanId === loggedInUser.id;
+            return `
+                <div class="bg-white rounded-xl shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow" onclick="showEventDetail(${event.id})">
+                    <h3 class="text-lg font-bold text-gray-800">${event.name}</h3>
+                    <p class="text-sm text-gray-500">${event.committeeName}</p>
+                    <div class="mt-4 px-3 py-1 rounded-full text-sm font-semibold ${isChairman ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">${isChairman ? 'Ketua Panitia' : 'Anggota'}</div>
+                </div>
+            `;
+        }).join('');
+    }
 
-    // --- HELPER & UTILITY FUNCTIONS ---
-    function formatDate(dateStr) { return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }); }
+    function showEventDetail(eventId) {
+        const event = events.find(e => e.id === eventId);
+        const eventTasks = tasks.filter(t => t.eventId === eventId);
+        const isChairman = event.chairmanId === loggedInUser.id;
+        const contentArea = document.getElementById('contentArea');
+        document.getElementById('navTitle').textContent = event.name;
+
+        let html = `<button onclick="renderDashboard()" class="mb-6 text-blue-600 font-semibold">&larr; Kembali ke Dashboard</button>`;
+        
+        if (isChairman) {
+            html += getKetuaEventView(event, eventTasks);
+        } else {
+            html += getAnggotaEventView(event, eventTasks);
+        }
+
+        contentArea.innerHTML = html;
+        startAllCountdowns();
+    }
+    
+    function getKetuaEventView(event, eventTasks) {
+        const completed = eventTasks.filter(t => t.status === 'completed');
+        const pending = eventTasks.filter(t => t.status === 'pending-confirmation');
+        const inProgress = eventTasks.filter(t => t.status === 'in-progress');
+        // HTML for task lists (pending, in-progress, completed) and button to add tasks
+        return `
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard Ketua Panitia: ${event.committeeName}</h2>
+            <!-- Task sections here -->
+        `;
+    }
+
+    function getAnggotaEventView(event, eventTasks) {
+        const myTasks = eventTasks.filter(t => t.assignedMemberIds.includes(loggedInUser.id));
+        const chairman = users.find(u => u.id === event.chairmanId);
+        // HTML for task list for the specific member
+        return `
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Tugas Saya</h2>
+            <p class="text-gray-600 mb-6">Ketua Panitia: ${chairman.name}</p>
+            <!-- Task list here -->
+        `;
+    }
+
+
+    // --- UTILITY FUNCTIONS ---
+    function startAllCountdowns() {
+        stopAllCountdowns();
+        document.querySelectorAll('.countdown').forEach(el => {
+            const interval = setInterval(() => updateCountdown(el), 1000);
+            countdownIntervals.push(interval);
+        });
+    }
+    function stopAllCountdowns() {
+        countdownIntervals.forEach(clearInterval);
+        countdownIntervals = [];
+    }
+    function updateCountdown(el) {
+        // Logic to update countdown timer
+    }
     // More helpers...
+
     </script>
 </body>
 </html>
