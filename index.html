@@ -18,7 +18,7 @@
         .user-select-dropdown { display: none; position: absolute; background-color: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; z-index: 1000; width: 100%; }
         .user-select-dropdown.show { display: block; }
         .selected-user-tag { display: inline-flex; align-items: center; background-color: #e0e7ff; color: #4338ca; border-radius: 9999px; padding: 4px 12px; margin: 4px; font-size: 0.875rem; line-height: 1.5; }
-        .selected-user-tag button { margin-left: 8px; color: #4338ca; background: none; border: none; cursor: pointer; }
+        .selected-user-tag button { margin-left: 8px; color: #4338ca; background: none; border: none; cursor: pointer; font-size: 1.25rem; line-height: 1; padding: 0; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
@@ -67,7 +67,7 @@
     </div>
     
     <div id="modalContainer"></div>
-    <div id="notificationContainer" class="fixed top-4 right-4 z-50"></div>
+    <div id="notificationContainer" class="fixed top-4 right-4 z-[100]"></div>
 
     <script>
     // --- DATABASE SIMULATION ---
@@ -94,59 +94,217 @@
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
         document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.body.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-select-container')) {
+                document.querySelectorAll('.user-select-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
     });
 
-    function handleLogin(e) { /* ... same as before ... */ }
-    function logout() { /* ... same as before ... */ }
+    function handleLogin(e) {
+        e.preventDefault();
+        const code = document.getElementById('accessCode').value;
+        const user = users.find(u => u.accessCode === code);
+        if (user) {
+            loggedInUser = user;
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            const divisionName = divisions.find(d => d.id === user.divisionId)?.name || 'N/A';
+            document.getElementById('currentUser').textContent = user.name;
+            document.getElementById('currentUserRole').textContent = `${user.role.charAt(0).toUpperCase() + user.role.slice(1)} - Divisi ${divisionName}`;
+            renderDashboard();
+        } else {
+            document.getElementById('loginError').classList.remove('hidden');
+        }
+    }
+    
+    function logout() {
+        loggedInUser = null;
+        document.getElementById('loginView').classList.remove('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('accessCode').value = '';
+        document.getElementById('navTitle').textContent = 'SIM Dashboard';
+    }
 
     function renderDashboard() {
         const contentArea = document.getElementById('contentArea');
         document.getElementById('navTitle').textContent = 'SIM Dashboard';
         switch (loggedInUser.role) {
-            case 'admin': contentArea.innerHTML = getAdminView(); renderAdminTables(); break;
-            case 'pimpinan': contentArea.innerHTML = getPimpinanView(); renderPimpinanDashboard(); break;
-            case 'anggota': contentArea.innerHTML = getAnggotaEventListView(); renderAnggotaEventList(); break;
+            case 'admin':
+                contentArea.innerHTML = getAdminView();
+                renderAdminTables();
+                break;
+            case 'pimpinan':
+                contentArea.innerHTML = getPimpinanView();
+                renderPimpinanDashboard();
+                break;
+            case 'anggota':
+                contentArea.innerHTML = getAnggotaEventListView();
+                renderAnggotaEventList();
+                break;
         }
     }
     
     // --- TEMPLATES & VIEWS ---
-    const getAdminView = () => `...`; // Admin view template
-    const getPimpinanView = () => `...`; // Pimpinan main dashboard template
-    const getAnggotaEventListView = () => `...`; // Anggota's list of events
-    const getEventDetailView = (event, isChairman) => `...`; // Detail view for an event
-    // ... other templates
-    
+    const getAdminView = () => `
+        <div class="space-y-12">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Kelola Divisi</h2>
+                    <button onclick="openDivisionModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">Tambah Divisi</button>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-md overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead><tr class="border-b"><th class="text-left p-3 font-semibold text-gray-600">Nama Divisi</th><th class="text-left p-3 font-semibold text-gray-600">Aksi</th></tr></thead>
+                        <tbody id="divisionTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Kelola Anggota</h2>
+                    <button onclick="openUserModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">Tambah Anggota</button>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-md overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead><tr class="border-b"><th class="text-left p-3 font-semibold text-gray-600">Nama</th><th class="text-left p-3 font-semibold text-gray-600">Divisi</th><th class="text-left p-3 font-semibold text-gray-600">Kode Akses</th><th class="text-left p-3 font-semibold text-gray-600">Role</th><th class="text-left p-3 font-semibold text-gray-600">Aksi</th></tr></thead>
+                        <tbody id="userTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>`;
+
+    const getPimpinanView = () => `
+        <div>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Monitoring Event</h2>
+                <button onclick="openEventModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-700 text-base">Buat Event Baru</button>
+            </div>
+            <div id="pimpinanEventProgress" class="space-y-4"></div>
+        </div>`;
+
+    const getAnggotaEventListView = () => `
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Event Saya</h2>
+            <div id="anggotaEventList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>`;
+
     // --- ADMIN FUNCTIONS ---
-    function renderAdminTables() { /* ... */ }
-    function openDivisionModal(id) { /* ... */ }
-    function saveDivision() { /* ... */ }
-    function deleteDivision(id) { /* ... */ }
-    function openUserModal(id) { /* ... */ }
-    function saveUser() { /* ... */ }
-    function deleteUser(id) { /* ... */ }
+    function renderAdminTables() {
+        const divisionTableBody = document.getElementById('divisionTableBody');
+        divisionTableBody.innerHTML = divisions.map(d => `
+            <tr class="border-b hover:bg-gray-50"><td class="p-3">${d.name}</td><td class="p-3 space-x-4"><button onclick="openDivisionModal(${d.id})" class="text-blue-600 font-semibold">Edit</button><button onclick="deleteDivision(${d.id})" class="text-red-600 font-semibold">Hapus</button></td></tr>
+        `).join('');
 
-    // --- PIMPINAN FUNCTIONS ---
-    function renderPimpinanDashboard() { /* ... */ }
-    function openEventModal() { /* ... */ }
-    function saveEvent() { /* ... */ }
-    
-    // --- KETUA & ANGGOTA FUNCTIONS ---
-    function renderAnggotaEventList() { /* ... */ }
-    function showEventDetail(eventId) { /* ... */ }
-    function openTaskModal(eventId) { /* ... */ }
-    function saveTask() { /* ... */ }
-    function completeTask(taskId) { /* ... */ }
-    function confirmTask(taskId) { /* ... */ }
-    function rejectTask(taskId) { /* ... */ }
+        const userTableBody = document.getElementById('userTableBody');
+        userTableBody.innerHTML = users.map(u => {
+            const divisionName = divisions.find(d => d.id === u.divisionId)?.name || 'N/A';
+            return `
+                <tr class="border-b hover:bg-gray-50"><td class="p-3">${u.name}</td><td class="p-3">${divisionName}</td><td class="p-3">${u.accessCode}</td><td class="p-3 capitalize">${u.role}</td><td class="p-3 space-x-4"><button onclick="openUserModal(${u.id})" class="text-blue-600 font-semibold">Edit</button><button onclick="deleteUser(${u.id})" class="text-red-600 font-semibold">Hapus</button></td></tr>
+            `;
+        }).join('');
+    }
+    // ... other functions will be added below
 
-    // --- UTILITY & HELPER FUNCTIONS ---
-    function closeModal() { /* ... */ }
-    function showNotification(message, type = 'success') { /* ... */ }
-    // ... user selection helpers, etc.
+    function renderPimpinanDashboard() {
+        const container = document.getElementById('pimpinanEventProgress');
+        if (events.length === 0) {
+            container.innerHTML = `<div class="text-center text-gray-500 py-10 bg-white rounded-lg shadow-md">Belum ada event yang dibuat.</div>`; return;
+        }
+        container.innerHTML = events.map(event => {
+            const eventTasks = tasks.filter(t => t.eventId === event.id);
+            const completedTasks = eventTasks.filter(t => t.status === 'completed');
+            const progress = eventTasks.length > 0 ? Math.round((completedTasks.length / eventTasks.length) * 100) : 0;
+            return `
+                <div class="bg-white rounded-xl shadow-md p-6">
+                     <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">${event.name}</h3>
+                            <p class="text-sm text-gray-500">Kepanitiaan: ${event.committeeName}</p>
+                        </div>
+                        <button onclick="showEventDetail(${event.id})" class="text-blue-600 font-semibold">Lihat Detail</button>
+                     </div>
+                     <div class="mt-4"><div class="flex justify-between mb-1"><span class="text-base font-medium text-blue-700">Progres Event</span><span class="text-sm font-medium text-blue-700">${progress}%</span></div><div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-blue-600 h-2.5 rounded-full progress-bar" style="width: ${progress}%"></div></div></div>
+                </div>
+            `;
+        }).join('');
+    }
 
-    // Minified and combined functions would go here in production
-    // For readability, they are kept separate in this example
-    
+    function renderAnggotaEventList() {
+        const container = document.getElementById('anggotaEventList');
+        const myEvents = events.filter(e => e.chairmanId === loggedInUser.id || e.memberIds.includes(loggedInUser.id));
+        if (myEvents.length === 0) {
+            container.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10 bg-white rounded-lg shadow-md">Anda tidak terlibat dalam event apapun.</div>`; return;
+        }
+        container.innerHTML = myEvents.map(event => {
+            const isChairman = event.chairmanId === loggedInUser.id;
+            return `
+                <div class="bg-white rounded-xl shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow" onclick="showEventDetail(${event.id})">
+                    <h3 class="text-lg font-bold text-gray-800">${event.name}</h3>
+                    <p class="text-sm text-gray-500">${event.committeeName}</p>
+                    <div class="mt-4 inline-block px-3 py-1 rounded-full text-sm font-semibold ${isChairman ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">${isChairman ? 'Ketua Panitia' : 'Anggota'}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function showEventDetail(eventId) {
+        const event = events.find(e => e.id === eventId);
+        const eventTasks = tasks.filter(t => t.eventId === eventId);
+        const isChairman = event.chairmanId === loggedInUser.id;
+        const isPimpinan = loggedInUser.role === 'pimpinan';
+        const contentArea = document.getElementById('contentArea');
+        document.getElementById('navTitle').textContent = event.name;
+
+        let html = `<button onclick="renderDashboard()" class="mb-6 text-blue-600 font-semibold">&larr; Kembali ke Dashboard</button>`;
+        
+        if (isPimpinan) {
+            html += getPimpinanEventDetailView(event, eventTasks);
+        } else if (isChairman) {
+            html += getKetuaEventView(event, eventTasks);
+        } else {
+            html += getAnggotaEventView(event, eventTasks);
+        }
+
+        contentArea.innerHTML = html;
+    }
+
+    function getPimpinanEventDetailView(event, eventTasks) {
+        const chairman = users.find(u => u.id === event.chairmanId);
+        const members = users.filter(u => event.memberIds.includes(u.id));
+        let taskListHtml = eventTasks.length > 0 ? eventTasks.map(t => {
+            const assigned = users.filter(u => t.assignedMemberIds.includes(u.id)).map(u => u.name).join(', ');
+            return `<li class="border-b py-2">${t.name} (PIC: ${assigned}) - <span class="font-semibold">${t.status}</span></li>`;
+        }).join('') : '<li>Belum ada tugas dibuat.</li>';
+
+        return `
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-2xl font-bold mb-4">Detail Kepanitiaan: ${event.committeeName}</h2>
+                <p><strong>Ketua:</strong> ${chairman.name}</p>
+                <p><strong>Anggota:</strong> ${members.map(m => m.name).join(', ')}</p>
+                <h3 class="text-xl font-bold mt-6 mb-2">Daftar Tugas</h3>
+                <ul class="list-disc list-inside">${taskListHtml}</ul>
+            </div>
+        `;
+    }
+
+    function getKetuaEventView(event, eventTasks) {
+        // ... implementation for chairman's view
+        return `<div class="bg-white p-6 rounded-xl shadow-md"><h2 class="text-2xl font-bold">Ketua View for ${event.name}</h2><p>Fungsionalitas untuk ketua akan ditampilkan di sini.</p></div>`;
+    }
+
+    function getAnggotaEventView(event, eventTasks) {
+        // ... implementation for member's view
+        return `<div class="bg-white p-6 rounded-xl shadow-md"><h2 class="text-2xl font-bold">Anggota View for ${event.name}</h2><p>Tugas-tugas anggota akan ditampilkan di sini.</p></div>`;
+    }
+
+    // Other placeholder functions to be filled
+    function openDivisionModal(id){}
+    function deleteDivision(id){}
+    function openUserModal(id){}
+    function deleteUser(id){}
+    function openEventModal(){}
+
     </script>
 </body>
 </html>
