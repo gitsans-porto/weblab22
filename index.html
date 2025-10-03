@@ -6,306 +6,1159 @@
     <title>SIM - Sistem Informasi Manajemen</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { box-sizing: border-box; }
         .progress-bar { transition: width 0.3s ease-in-out; }
+        .task-card { transition: all 0.2s ease-in-out; }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         .fade-in { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .notification { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
         .modal-content::-webkit-scrollbar { width: 8px; }
         .modal-content::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         .modal-content::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
-        .user-select-container { position: relative; }
-        .user-select-dropdown { display: none; position: absolute; background-color: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; z-index: 1000; width: 100%; }
-        .user-select-dropdown.show { display: block; }
-        .selected-user-tag { display: inline-flex; align-items: center; background-color: #e0e7ff; color: #4338ca; border-radius: 9999px; padding: 4px 12px; margin: 4px; font-size: 0.875rem; line-height: 1.5; }
-        .selected-user-tag button { margin-left: 8px; color: #4338ca; background: none; border: none; cursor: pointer; font-size: 1.25rem; line-height: 1; padding: 0; }
+        .modal-content::-webkit-scrollbar-thumb:hover { background: #555; }
+        .details-container { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
+        .details-container.open { max-height: 1000px; /* Large enough value */ }
+        .chevron { transition: transform 0.3s ease; }
+        .open .chevron { transform: rotate(90deg); }
+        .tag { display: inline-flex; align-items: center; padding: 4px 8px; margin: 2px; background-color: #e0f2fe; color: #0369a1; border-radius: 9999px; font-size: 0.875rem; }
+        .tag-remove { margin-left: 6px; cursor: pointer; color: #0369a1; }
+        .dropdown-menu { position: absolute; z-index: 10; background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; width: 100%; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-
     <!-- Login View -->
-    <div id="loginView" class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md mx-auto text-center">
-             <div class="mx-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6">
+    <div id="loginView" class="flex items-center justify-center min-h-screen">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md mx-4 text-center">
+            <div class="mx-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-full w-16 h-16 flex items-center justify-center mb-6">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
             </div>
             <h1 class="text-2xl font-bold text-gray-800 mb-2">Sistem Informasi Manajemen</h1>
-            <p class="text-gray-600 mb-6">Silakan masukkan kode akses unik Anda.</p>
+            <p class="text-gray-600 mb-6">Silakan masukkan kode akses Anda.</p>
             <form id="loginForm">
-                <input type="password" id="accessCode" class="w-full text-center tracking-widest font-bold text-lg border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 transition" placeholder="••••••">
-                <p id="loginError" class="text-red-500 text-sm mt-2 hidden">Kode akses tidak ditemukan.</p>
-                <button type="submit" class="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all">Masuk</button>
+                <input type="password" id="accessCode" class="w-full text-center tracking-widest font-bold text-lg border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="••••••">
+                <p id="loginError" class="text-red-500 text-sm mt-2 hidden">Kode akses salah. Silakan coba lagi.</p>
+                <button type="submit" class="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl">
+                    Masuk
+                </button>
             </form>
         </div>
     </div>
-
     <!-- Main Application View (Initially Hidden) -->
     <div id="mainApp" class="hidden">
-        <nav class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-40">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-lg border-b border-gray-200">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center h-16">
                     <div class="flex items-center">
-                         <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-2 rounded-lg">
+                        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-2 rounded-lg">
                              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                         </div>
-                        <h1 id="navTitle" class="ml-3 text-xl font-bold text-gray-900">SIM Dashboard</h1>
+                        <h1 class="ml-3 text-xl font-bold text-gray-900">SIM Dashboard</h1>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <div class="text-right">
-                           <div id="currentUser" class="font-semibold text-gray-800"></div>
-                           <div id="currentUserRole" class="text-sm text-gray-500"></div>
+                        <div class="text-sm text-gray-600">
+                            <span id="currentUser" class="font-medium"></span>
                         </div>
-                        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm font-medium">Logout</button>
+                        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium">
+                            Logout
+                        </button>
                     </div>
                 </div>
             </div>
         </nav>
-
-        <div id="contentArea" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Dynamic Content based on Role -->
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Admin Dashboard -->
+            <div id="adminView" class="hidden fade-in">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">🔑 Kelola Divisi</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-1">
+                            <form id="divisionForm" class="bg-gray-50 p-4 rounded-lg border">
+                                <h3 id="divisionFormTitle" class="font-semibold mb-3 text-gray-800">Tambah Divisi Baru</h3>
+                                <input type="hidden" id="divisionId">
+                                <div class="space-y-3">
+                                    <div><label for="divisionName" class="block text-sm font-medium text-gray-700">Nama Divisi</label><input type="text" id="divisionName" required class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+                                    <div><label for="divisionAccessCode" class="block text-sm font-medium text-gray-700">Kode Akses</label><input type="text" id="divisionAccessCode" required class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+                                    <div class="flex space-x-2"><button type="submit" id="divisionSubmitBtn" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">Tambah</button><button type="button" id="divisionCancelBtn" onclick="resetDivisionForm()" class="hidden flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">Batal</button></div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="md:col-span-2">
+                            <div class="overflow-x-auto"><table class="min-w-full bg-white border rounded-lg"><thead class="bg-gray-100"><tr><th class="text-left py-2 px-3 font-semibold text-gray-600 text-sm">Nama Divisi</th><th class="text-left py-2 px-3 font-semibold text-gray-600 text-sm">Kode Akses</th><th class="text-left py-2 px-3 font-semibold text-gray-600 text-sm">Aksi</th></tr></thead><tbody id="divisionTableBody"></tbody></table></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">👥 Kelola Anggota</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-1">
+                            <form id="memberForm" class="bg-gray-50 p-4 rounded-lg border">
+                                <h3 id="memberFormTitle" class="font-semibold mb-3 text-gray-800">Tambah Anggota Baru</h3>
+                                <input type="hidden" id="memberId">
+                                <div class="space-y-3">
+                                    <div><label for="memberName" class="block text-sm font-medium text-gray-700">Nama Anggota</label><input type="text" id="memberName" required class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+                                    <div><label for="memberDivision" class="block text-sm font-medium text-gray-700">Divisi</label><select id="memberDivision" required class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">Pilih Divisi</option></select></div>
+                                    <div><label for="memberAccessCode" class="block text-sm font-medium text-gray-700">Kode Akses</label><input type="text" id="memberAccessCode" required class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+                                    <div class="flex space-x-2"><button type="submit" id="memberSubmitBtn" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">Tambah</button><button type="button" id="memberCancelBtn" onclick="resetMemberForm()" class="hidden flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">Batal</button></div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="md:col-span-2">
+                            <div class="overflow-x-auto"><table class="min-w-full bg-white border rounded-lg"><thead class="bg-gray-100"><tr><th class="text-left py-2 px-3 font-semibold text-gray-600 text-sm">Nama</th><th class="text-left py-2 px-3 font-semibold text-gray-600 text-sm">Divisi</th><th class="text-left py-2 px-3 font-semibold text-gray-600 text-sm">Kode Akses</th><th class="text-left py-2 px-3 font-semibold text-gray-600 text-sm">Aksi</th></tr></thead><tbody id="memberTableBody"></tbody></table></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Pimpinan Dashboard -->
+            <div id="pimpinanView" class="hidden fade-in">
+                 <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100"><div class="flex items-center"><div class="bg-blue-100 p-3 rounded-full"><svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Total Event</p><p class="text-2xl font-bold text-gray-900" id="totalEvents">0</p></div></div></div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100"><div class="flex items-center"><div class="bg-green-100 p-3 rounded-full"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Event Selesai</p><p class="text-2xl font-bold text-green-600" id="completedEvents">0</p></div></div></div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100"><div class="flex items-center"><div class="bg-yellow-100 p-3 rounded-full"><svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Event Berjalan</p><p class="text-2xl font-bold text-yellow-600" id="inProgressEvents">0</p></div></div></div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100"><div class="flex items-center"><div class="bg-purple-100 p-3 rounded-full"><svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg></div><div class="ml-4"><p class="text-sm font-medium text-gray-600">Progres Rata-rata</p><p class="text-2xl font-bold text-purple-600" id="avgProgress">0%</p></div></div></div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100 text-center">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-3">Buat Event & Bentuk Kepanitiaan</h2>
+                    <p class="text-gray-600 mb-4">Buat event baru dan bentuk kepanitiaan dalam satu langkah mudah.</p>
+                    <button onclick="openEventModal()" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-bold text-lg shadow-lg hover:shadow-xl">
+                        🎉 Buat Event Baru
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- REVAMPED: Event Progress Section -->
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-6">📊 Progres Event</h2>
+                        <div id="eventProgressContainer" class="space-y-4">
+                            <!-- Event progress will be populated here -->
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100"><h2 class="text-lg font-semibold text-gray-900 mb-6">🔔 Aktivitas Terbaru</h2><div id="recentActivities" class="space-y-3"></div></div>
+                </div>
+            </div>
+            <!-- Divisi Dashboard -->
+            <div id="divisiView" class="hidden fade-in">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 id="divisiTitle" class="text-2xl font-bold text-gray-900"></h2>
+                            <p class="text-gray-600 mt-1">Kelola dan pantau tugas-tugas divisi Anda</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600">Tugas Selesai</p>
+                            <p class="text-3xl font-bold text-green-600" id="divisionCompletedTasks">0/0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md border border-gray-100">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">📋 Daftar Tugas</h3>
+                    </div>
+                    <div class="p-6">
+                        <div id="taskList" class="space-y-4"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Event Detail View -->
+            <div id="eventDetailView" class="hidden fade-in">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 id="eventDetailTitle" class="text-2xl font-bold text-gray-900"></h2>
+                            <p id="eventDetailDate" class="text-gray-600 mt-1"></p>
+                        </div>
+                        <div id="eventRoleInfo" class="text-right">
+                            <!-- Will show role info: Ketua or Anggota -->
+                        </div>
+                    </div>
+                </div>
+                <div id="ketuaView" class="hidden">
+                    <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Buat Tugas untuk Anggota</h3>
+                        <form id="assignTaskForm">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nama Tugas</label>
+                                <input type="text" id="taskName" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Deadline</label>
+                                <input type="date" id="taskDeadline" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Anggota</label>
+                                <div class="relative">
+                                    <div id="selectedMembersContainer" class="flex flex-wrap border border-gray-300 rounded-lg px-3 py-2 min-h-[42px]"></div>
+                                    <div id="membersDropdown" class="dropdown-menu hidden absolute top-full mt-1"></div>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all">Buat Tugas</button>
+                        </form>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-md border border-gray-100">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">📋 Tugas yang Diberikan</h3>
+                        </div>
+                        <div class="p-6">
+                            <div id="assignedTasksList" class="space-y-4"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="anggotaView" class="hidden">
+                    <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Tugas Anda</h3>
+                        <div id="myTasksList" class="space-y-4"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    
-    <div id="modalContainer"></div>
-    <div id="notificationContainer" class="fixed top-4 right-4 z-[100]"></div>
-
-    <script>
-    // --- DATABASE SIMULATION ---
-    let divisions = [ { id: 1, name: 'IT' }, { id: 2, name: 'Marketing' }, { id: 3, name: 'HR' } ];
-    let users = [
-        { id: 1, name: 'Admin Utama', divisionId: 1, accessCode: 'admin', role: 'admin' },
-        { id: 2, name: 'Budi Santoso', divisionId: 1, accessCode: 'pimpinan', role: 'pimpinan' },
-        { id: 3, name: 'Citra Lestari', divisionId: 1, accessCode: 'citra123', role: 'anggota' },
-        { id: 4, name: 'Doni Firmansyah', divisionId: 2, accessCode: 'doni123', role: 'anggota' },
-        { id: 5, name: 'Eka Putri', divisionId: 2, accessCode: 'eka123', role: 'anggota' },
-        { id: 6, name: 'Fajar Nugraha', divisionId: 3, accessCode: 'fajar123', role: 'anggota' }
-    ];
-    let events = [
-        { id: 1, name: 'Peluncuran Produk Q4', date: '2025-12-15', committeeName: 'Tim Peluncuran', chairmanId: 3, memberIds: [4, 5] }
-    ];
-    let tasks = [
-        { id: 1, eventId: 1, name: 'Siapkan materi presentasi', deadline: '2025-11-30', assignedMemberIds: [4], status: 'completed', photoUrl: 'https://placehold.co/600x400/1D4ED8/FFFFFF?text=Materi+Selesai' },
-        { id: 2, eventId: 1, name: 'Buat video teaser produk', deadline: '2025-12-05', assignedMemberIds: [4, 5], status: 'pending-confirmation', photoUrl: 'https://placehold.co/600x400/D946EF/FFFFFF?text=Video+Teaser' },
-        { id: 3, eventId: 1, name: 'Finalisasi daftar undangan', deadline: '2025-12-10', assignedMemberIds: [5], status: 'in-progress', photoUrl: null }
-    ];
-    let loggedInUser = null;
-
-    // --- CORE APP LOGIC ---
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('loginForm').addEventListener('submit', handleLogin);
-        document.getElementById('logoutBtn').addEventListener('click', logout);
-        document.body.addEventListener('click', (e) => {
-            if (!e.target.closest('.user-select-container')) {
-                document.querySelectorAll('.user-select-dropdown').forEach(d => d.classList.remove('show'));
-            }
-        });
-    });
-
-    function handleLogin(e) {
-        e.preventDefault();
-        const code = document.getElementById('accessCode').value;
-        const user = users.find(u => u.accessCode === code);
-        if (user) {
-            loggedInUser = user;
-            document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-            const divisionName = divisions.find(d => d.id === user.divisionId)?.name || 'N/A';
-            document.getElementById('currentUser').textContent = user.name;
-            document.getElementById('currentUserRole').textContent = `${user.role.charAt(0).toUpperCase() + user.role.slice(1)} - Divisi ${divisionName}`;
-            renderDashboard();
-        } else {
-            document.getElementById('loginError').classList.remove('hidden');
-        }
-    }
-    
-    function logout() {
-        loggedInUser = null;
-        document.getElementById('loginView').classList.remove('hidden');
-        document.getElementById('mainApp').classList.add('hidden');
-        document.getElementById('accessCode').value = '';
-        document.getElementById('navTitle').textContent = 'SIM Dashboard';
-    }
-
-    function renderDashboard() {
-        const contentArea = document.getElementById('contentArea');
-        document.getElementById('navTitle').textContent = 'SIM Dashboard';
-        switch (loggedInUser.role) {
-            case 'admin':
-                contentArea.innerHTML = getAdminView();
-                renderAdminTables();
-                break;
-            case 'pimpinan':
-                contentArea.innerHTML = getPimpinanView();
-                renderPimpinanDashboard();
-                break;
-            case 'anggota':
-                contentArea.innerHTML = getAnggotaEventListView();
-                renderAnggotaEventList();
-                break;
-        }
-    }
-    
-    // --- TEMPLATES & VIEWS ---
-    const getAdminView = () => `
-        <div class="space-y-12">
-            <div>
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-800">Kelola Divisi</h2>
-                    <button onclick="openDivisionModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">Tambah Divisi</button>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-md overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead><tr class="border-b"><th class="text-left p-3 font-semibold text-gray-600">Nama Divisi</th><th class="text-left p-3 font-semibold text-gray-600">Aksi</th></tr></thead>
-                        <tbody id="divisionTableBody"></tbody>
-                    </table>
+    <!-- Modals -->
+    <div id="photoModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">📸 Upload Bukti Penyelesaian</h3>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Upload Foto Bukti</label>
+                <input type="file" id="photoInput" accept="image/*" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan (Opsional)</label>
+                <textarea id="photoDescription" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tambahkan keterangan..."></textarea>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="closePhotoModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">Batal</button>
+                <button onclick="submitPhoto()" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all">✅ Konfirmasi</button>
+            </div>
+        </div>
+    </div>
+    <div id="progressDetailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 max-w-4xl w-full mx-4 flex flex-col" style="height: 90vh;">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 id="progressDetailTitle" class="text-xl font-semibold text-gray-900"></h3>
+                <button onclick="closeProgressDetailModal()" class="text-gray-500 hover:text-gray-800">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="progressDetailContent" class="modal-content flex-grow overflow-y-auto pr-2"></div>
+        </div>
+    </div>
+    <div id="notification" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden notification">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span id="notificationText"></span>
+        </div>
+    </div>
+    <div id="eventModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl mx-4 flex flex-col" style="height: 90vh;">
+            <div class="p-6 border-b">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-gray-800">Buat Event & Bentuk Kepanitiaan</h2>
+                    <button onclick="closeEventModal()" class="text-gray-500 hover:text-gray-800">&times;</button>
                 </div>
             </div>
-            <div>
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-800">Kelola Anggota</h2>
-                    <button onclick="openUserModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">Tambah Anggota</button>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-md overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead><tr class="border-b"><th class="text-left p-3 font-semibold text-gray-600">Nama</th><th class="text-left p-3 font-semibold text-gray-600">Divisi</th><th class="text-left p-3 font-semibold text-gray-600">Kode Akses</th><th class="text-left p-3 font-semibold text-gray-600">Role</th><th class="text-left p-3 font-semibold text-gray-600">Aksi</th></tr></thead>
-                        <tbody id="userTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>`;
-
-    const getPimpinanView = () => `
-        <div>
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-gray-800">Monitoring Event</h2>
-                <button onclick="openEventModal()" class="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-700 text-base">Buat Event Baru</button>
-            </div>
-            <div id="pimpinanEventProgress" class="space-y-4"></div>
-        </div>`;
-
-    const getAnggotaEventListView = () => `
-        <div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Event Saya</h2>
-            <div id="anggotaEventList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-        </div>`;
-
-    // --- ADMIN FUNCTIONS ---
-    function renderAdminTables() {
-        const divisionTableBody = document.getElementById('divisionTableBody');
-        divisionTableBody.innerHTML = divisions.map(d => `
-            <tr class="border-b hover:bg-gray-50"><td class="p-3">${d.name}</td><td class="p-3 space-x-4"><button onclick="openDivisionModal(${d.id})" class="text-blue-600 font-semibold">Edit</button><button onclick="deleteDivision(${d.id})" class="text-red-600 font-semibold">Hapus</button></td></tr>
-        `).join('');
-
-        const userTableBody = document.getElementById('userTableBody');
-        userTableBody.innerHTML = users.map(u => {
-            const divisionName = divisions.find(d => d.id === u.divisionId)?.name || 'N/A';
-            return `
-                <tr class="border-b hover:bg-gray-50"><td class="p-3">${u.name}</td><td class="p-3">${divisionName}</td><td class="p-3">${u.accessCode}</td><td class="p-3 capitalize">${u.role}</td><td class="p-3 space-x-4"><button onclick="openUserModal(${u.id})" class="text-blue-600 font-semibold">Edit</button><button onclick="deleteUser(${u.id})" class="text-red-600 font-semibold">Hapus</button></td></tr>
-            `;
-        }).join('');
-    }
-    // ... other functions will be added below
-
-    function renderPimpinanDashboard() {
-        const container = document.getElementById('pimpinanEventProgress');
-        if (events.length === 0) {
-            container.innerHTML = `<div class="text-center text-gray-500 py-10 bg-white rounded-lg shadow-md">Belum ada event yang dibuat.</div>`; return;
-        }
-        container.innerHTML = events.map(event => {
-            const eventTasks = tasks.filter(t => t.eventId === event.id);
-            const completedTasks = eventTasks.filter(t => t.status === 'completed');
-            const progress = eventTasks.length > 0 ? Math.round((completedTasks.length / eventTasks.length) * 100) : 0;
-            return `
-                <div class="bg-white rounded-xl shadow-md p-6">
-                     <div class="flex justify-between items-center">
+            <form id="addEventForm" class="flex-grow contents">
+                <div class="p-6 modal-content overflow-y-auto">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
-                            <h3 class="text-xl font-bold text-gray-800">${event.name}</h3>
-                            <p class="text-sm text-gray-500">Kepanitiaan: ${event.committeeName}</p>
+                            <label for="eventName" class="block text-sm font-medium text-gray-700 mb-1">Nama Event</label>
+                            <input type="text" id="eventName" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Rapat Kerja Tahunan 2025">
                         </div>
-                        <button onclick="showEventDetail(${event.id})" class="text-blue-600 font-semibold">Lihat Detail</button>
-                     </div>
-                     <div class="mt-4"><div class="flex justify-between mb-1"><span class="text-base font-medium text-blue-700">Progres Event</span><span class="text-sm font-medium text-blue-700">${progress}%</span></div><div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-blue-600 h-2.5 rounded-full progress-bar" style="width: ${progress}%"></div></div></div>
+                        <div>
+                            <label for="eventDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Event</label>
+                            <input type="date" id="eventDate" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Tim Kepanitiaan</label>
+                        <input type="text" id="committeeName" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Panitia HUT">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Ketua Panitia <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <div id="selectedChairContainer" class="flex flex-wrap border border-gray-300 rounded-lg px-3 py-2 min-h-[42px]"></div>
+                            <div id="chairDropdown" class="dropdown-menu hidden absolute top-full mt-1"></div>
+                        </div>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Anggota Panitia</label>
+                        <div class="relative">
+                            <div id="selectedMembersContainerModal" class="flex flex-wrap border border-gray-300 rounded-lg px-3 py-2 min-h-[42px]"></div>
+                            <div id="membersDropdownModal" class="dropdown-menu hidden absolute top-full mt-1"></div>
+                        </div>
+                    </div>
                 </div>
-            `;
-        }).join('');
-    }
-
-    function renderAnggotaEventList() {
-        const container = document.getElementById('anggotaEventList');
-        const myEvents = events.filter(e => e.chairmanId === loggedInUser.id || e.memberIds.includes(loggedInUser.id));
-        if (myEvents.length === 0) {
-            container.innerHTML = `<div class="col-span-full text-center text-gray-500 py-10 bg-white rounded-lg shadow-md">Anda tidak terlibat dalam event apapun.</div>`; return;
-        }
-        container.innerHTML = myEvents.map(event => {
-            const isChairman = event.chairmanId === loggedInUser.id;
-            return `
-                <div class="bg-white rounded-xl shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow" onclick="showEventDetail(${event.id})">
-                    <h3 class="text-lg font-bold text-gray-800">${event.name}</h3>
-                    <p class="text-sm text-gray-500">${event.committeeName}</p>
-                    <div class="mt-4 inline-block px-3 py-1 rounded-full text-sm font-semibold ${isChairman ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">${isChairman ? 'Ketua Panitia' : 'Anggota'}</div>
+                <div class="p-6 border-t bg-gray-50 rounded-b-2xl">
+                    <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all">Buat Event</button>
                 </div>
-            `;
-        }).join('');
-    }
+            </form>
+        </div>
+    </div>
+    <script>
+        // --- DATABASE SIMULATION ---
+        let adminAccessCode = 'admin123';
+        let pimpinanAccessCode = '123';
+        let divisions = [
+            { id: 1, name: 'IT', accessCode: '321' },
+            { id: 2, name: 'Marketing', accessCode: '111' },
+            { id: 3, name: 'HR', accessCode: '222' },
+            { id: 4, name: 'Operations', accessCode: '333' },
+            { id: 5, name: 'Finance', accessCode: '444' }
+        ];
+        let members = [
+            { id: 1, name: 'Ahmad Fauzi', division: 'IT', accessCode: 'ahmad123' },
+            { id: 2, name: 'Budi Santoso', division: 'IT', accessCode: 'budi123' },
+            { id: 3, name: 'Citra Dewi', division: 'Marketing', accessCode: 'citra123' },
+            { id: 4, name: 'Dewi Lestari', division: 'Marketing', accessCode: 'dewi123' },
+            { id: 5, name: 'Eko Prasetyo', division: 'HR', accessCode: 'eko123' },
+            { id: 6, name: 'Fajar Nugroho', division: 'Operations', accessCode: 'fajar123' },
+            { id: 7, name: 'Gita Puspita', division: 'Finance', accessCode: 'gita123' }
+        ];
+        let events = [
+            {
+                id: 1,
+                name: 'Peluncuran Produk Baru',
+                date: '2025-10-30',
+                committeeName: 'Panitia Peluncuran',
+                chair: { id: 1, name: 'Ahmad Fauzi' },
+                members: [
+                    { id: 2, name: 'Budi Santoso' },
+                    { id: 3, name: 'Citra Dewi' },
+                    { id: 4, name: 'Dewi Lestari' }
+                ],
+                tasks: [
+                    { id: 1, name: 'Siapkan Halaman Website', assignees: [{ id: 2, name: 'Budi Santoso' }], status: 'completed', assignedDate: '2025-10-01', completedDate: '2025-10-03', photo: true, deadline: '2025-10-10', photoUrl: 'https://placehold.co/600x400/1D4ED8/FFFFFF?text=Bukti+Website' },
+                    { id: 2, name: 'Buat Kampanye Iklan Digital', assignees: [{ id: 3, name: 'Citra Dewi' }], status: 'in-progress', assignedDate: '2025-10-01', completedDate: null, photo: false, deadline: '2025-10-25', photoUrl: null },
+                    { id: 3, name: 'Analisis Pasar', assignees: [{ id: 4, name: 'Dewi Lestari' }], status: 'completed', assignedDate: '2025-10-01', completedDate: '2025-10-02', photo: true, deadline: '2025-10-05', photoUrl: 'https://placehold.co/600x400/D946EF/FFFFFF?text=Analisis+Pasar' }
+                ]
+            },
+            {
+                id: 2,
+                name: 'Raker Tahunan',
+                date: '2025-11-15',
+                committeeName: 'Panitia Raker',
+                chair: { id: 5, name: 'Eko Prasetyo' },
+                members: [
+                    { id: 6, name: 'Fajar Nugroho' },
+                    { id: 7, name: 'Gita Puspita' }
+                ],
+                tasks: [
+                    { id: 4, name: 'Siapkan Server dan Jaringan', assignees: [{ id: 6, name: 'Fajar Nugroho' }], status: 'completed', assignedDate: '2025-10-01', completedDate: '2025-10-03', photo: true, deadline: '2025-10-20', photoUrl: 'https://placehold.co/600x400/1D4ED8/FFFFFF?text=Server+Raker' },
+                    { id: 5, name: 'Cetak Materi dan Banner', assignees: [{ id: 7, name: 'Gita Puspita' }], status: 'in-progress', assignedDate: '2025-10-02', photo: false, deadline: '2025-10-05', photoUrl: null }
+                ]
+            }
+        ];
+        let currentTaskId = null;
+        let loggedInUser = null; 
+        let currentEventId = null;
+        let countdownInterval = null;
 
-    function showEventDetail(eventId) {
-        const event = events.find(e => e.id === eventId);
-        const eventTasks = tasks.filter(t => t.eventId === eventId);
-        const isChairman = event.chairmanId === loggedInUser.id;
-        const isPimpinan = loggedInUser.role === 'pimpinan';
-        const contentArea = document.getElementById('contentArea');
-        document.getElementById('navTitle').textContent = event.name;
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            document.getElementById('addEventForm').addEventListener('submit', addNewEvent);
+            document.getElementById('divisionForm').addEventListener('submit', handleDivisionFormSubmit);
+            document.getElementById('memberForm').addEventListener('submit', handleMemberFormSubmit);
+            document.getElementById('assignTaskForm').addEventListener('submit', assignTask);
+            
+            // Setup dropdowns
+            setupChairDropdown();
+            setupMembersDropdown();
+            setupMembersDropdownModal();
+            
+            startCountdownTimers();
+        });
 
-        let html = `<button onclick="renderDashboard()" class="mb-6 text-blue-600 font-semibold">&larr; Kembali ke Dashboard</button>`;
-        
-        if (isPimpinan) {
-            html += getPimpinanEventDetailView(event, eventTasks);
-        } else if (isChairman) {
-            html += getKetuaEventView(event, eventTasks);
-        } else {
-            html += getAnggotaEventView(event, eventTasks);
+        // --- AUTHENTICATION & VIEW MANAGEMENT ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const code = document.getElementById("accessCode").value;
+            const errorEl = document.getElementById("loginError");
+            
+            if (code === adminAccessCode) {
+                loggedInUser = { role: "admin" };
+                showAppView();
+                renderAdminView();
+            } else if (code === pimpinanAccessCode) {
+                loggedInUser = { role: "pimpinan" };
+                showAppView();
+                renderPimpinanView();
+            } else {
+                const member = members.find(m => m.accessCode === code);
+                if (member) {
+                    loggedInUser = { role: "member", ...member };
+                    showAppView();
+                    renderMemberEventList();
+                } else {
+                    errorEl.classList.remove("hidden");
+                }
+            }
         }
 
-        contentArea.innerHTML = html;
-    }
+        function logout() {
+            loggedInUser = null;
+            document.getElementById("loginView").classList.remove("hidden");
+            document.getElementById("mainApp").classList.add("hidden");
+            document.getElementById("accessCode").value = "";
+            document.getElementById("loginError").classList.add("hidden");
+            // Hide all views
+            document.querySelectorAll('#mainApp > div[id$="View"]').forEach(el => el.classList.add('hidden'));
+        }
 
-    function getPimpinanEventDetailView(event, eventTasks) {
-        const chairman = users.find(u => u.id === event.chairmanId);
-        const members = users.filter(u => event.memberIds.includes(u.id));
-        let taskListHtml = eventTasks.length > 0 ? eventTasks.map(t => {
-            const assigned = users.filter(u => t.assignedMemberIds.includes(u.id)).map(u => u.name).join(', ');
-            return `<li class="border-b py-2">${t.name} (PIC: ${assigned}) - <span class="font-semibold">${t.status}</span></li>`;
-        }).join('') : '<li>Belum ada tugas dibuat.</li>';
+        function showAppView() {
+            document.getElementById("loginView").classList.add("hidden");
+            document.getElementById("mainApp").classList.remove("hidden");
+        }
 
-        return `
-            <div class="bg-white p-6 rounded-xl shadow-md">
-                <h2 class="text-2xl font-bold mb-4">Detail Kepanitiaan: ${event.committeeName}</h2>
-                <p><strong>Ketua:</strong> ${chairman.name}</p>
-                <p><strong>Anggota:</strong> ${members.map(m => m.name).join(', ')}</p>
-                <h3 class="text-xl font-bold mt-6 mb-2">Daftar Tugas</h3>
-                <ul class="list-disc list-inside">${taskListHtml}</ul>
-            </div>
-        `;
-    }
+        function renderAdminView() {
+            document.querySelectorAll('#mainApp > div[id$="View"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById("adminView").classList.remove("hidden");
+            document.getElementById("currentUser").textContent = "Role: Admin";
+            renderDivisionManagementTable();
+            renderMemberManagementTable();
+            populateMemberDivisionSelect();
+        }
 
-    function getKetuaEventView(event, eventTasks) {
-        // ... implementation for chairman's view
-        return `<div class="bg-white p-6 rounded-xl shadow-md"><h2 class="text-2xl font-bold">Ketua View for ${event.name}</h2><p>Fungsionalitas untuk ketua akan ditampilkan di sini.</p></div>`;
-    }
+        function renderPimpinanView() {
+            document.querySelectorAll('#mainApp > div[id$="View"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById("pimpinanView").classList.remove("hidden");
+            document.getElementById("currentUser").textContent = "Role: Pimpinan";
+            updateAllPimpinanDashboards();
+        }
 
-    function getAnggotaEventView(event, eventTasks) {
-        // ... implementation for member's view
-        return `<div class="bg-white p-6 rounded-xl shadow-md"><h2 class="text-2xl font-bold">Anggota View for ${event.name}</h2><p>Tugas-tugas anggota akan ditampilkan di sini.</p></div>`;
-    }
+        function renderMemberEventList() {
+            // For now, just show divisi view as placeholder
+            document.querySelectorAll('#mainApp > div[id$="View"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById("divisiView").classList.remove("hidden");
+            document.getElementById("currentUser").textContent = `Anggota: ${loggedInUser.name}`;
+            document.getElementById("divisiTitle").textContent = `Dashboard Anggota`;
+            renderMemberTaskList();
+        }
 
-    // Other placeholder functions to be filled
-    function openDivisionModal(id){}
-    function deleteDivision(id){}
-    function openUserModal(id){}
-    function deleteUser(id){}
-    function openEventModal(){}
+        // --- ADMIN: DIVISION MANAGEMENT ---
+        function renderDivisionManagementTable() {
+            const tbody = document.getElementById("divisionTableBody");
+            tbody.innerHTML = divisions.map(div => 
+                `<tr class="border-b">
+                    <td class="py-2 px-3">${div.name}</td>
+                    <td class="py-2 px-3">${div.accessCode}</td>
+                    <td class="py-2 px-3 flex space-x-2">
+                        <button onclick="editDivision(${div.id})" class="text-blue-500 hover:text-blue-700 text-sm">Edit</button>
+                        <button onclick="deleteDivision(${div.id})" class="text-red-500 hover:text-red-700 text-sm">Hapus</button>
+                    </td>
+                </tr>`
+            ).join("");
+        }
 
+        function handleDivisionFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById("divisionId").value;
+            const name = document.getElementById("divisionName").value;
+            const accessCode = document.getElementById("divisionAccessCode").value;
+            
+            if (id) {
+                const index = divisions.findIndex(d => d.id == id);
+                if (index !== -1) {
+                    divisions[index] = { ...divisions[index], name, accessCode };
+                }
+            } else {
+                const newId = divisions.length > 0 ? Math.max(...divisions.map(d => d.id)) + 1 : 1;
+                divisions.push({ id: newId, name, accessCode });
+            }
+            
+            resetDivisionForm();
+            renderDivisionManagementTable();
+            populateMemberDivisionSelect();
+        }
+
+        function editDivision(id) {
+            const div = divisions.find(d => d.id === id);
+            if (div) {
+                document.getElementById("divisionId").value = div.id;
+                document.getElementById("divisionName").value = div.name;
+                document.getElementById("divisionAccessCode").value = div.accessCode;
+                document.getElementById("divisionFormTitle").textContent = "Edit Divisi";
+                document.getElementById("divisionSubmitBtn").textContent = "Simpan";
+                document.getElementById("divisionCancelBtn").classList.remove("hidden");
+            }
+        }
+
+        function deleteDivision(id) {
+            if (confirm("Apakah Anda yakin ingin menghapus divisi ini?")) {
+                divisions = divisions.filter(d => d.id !== id);
+                // Remove members from this division
+                members = members.filter(m => m.division !== divisions.find(d => d.id === id)?.name);
+                renderDivisionManagementTable();
+                renderMemberManagementTable();
+                populateMemberDivisionSelect();
+            }
+        }
+
+        function resetDivisionForm() {
+            document.getElementById("divisionForm").reset();
+            document.getElementById("divisionId").value = "";
+            document.getElementById("divisionFormTitle").textContent = "Tambah Divisi Baru";
+            document.getElementById("divisionSubmitBtn").textContent = "Tambah";
+            document.getElementById("divisionCancelBtn").classList.add("hidden");
+        }
+
+        // --- ADMIN: MEMBER MANAGEMENT ---
+        function renderMemberManagementTable() {
+            const tbody = document.getElementById("memberTableBody");
+            tbody.innerHTML = members.map(member => 
+                `<tr class="border-b">
+                    <td class="py-2 px-3">${member.name}</td>
+                    <td class="py-2 px-3">${member.division}</td>
+                    <td class="py-2 px-3">${member.accessCode}</td>
+                    <td class="py-2 px-3 flex space-x-2">
+                        <button onclick="editMember(${member.id})" class="text-blue-500 hover:text-blue-700 text-sm">Edit</button>
+                        <button onclick="deleteMember(${member.id})" class="text-red-500 hover:text-red-700 text-sm">Hapus</button>
+                    </td>
+                </tr>`
+            ).join("");
+        }
+
+        function populateMemberDivisionSelect() {
+            const select = document.getElementById("memberDivision");
+            select.innerHTML = '<option value="">Pilih Divisi</option>' + 
+                divisions.map(div => `<option value="${div.name}">${div.name}</option>`).join("");
+        }
+
+        function handleMemberFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById("memberId").value;
+            const name = document.getElementById("memberName").value;
+            const division = document.getElementById("memberDivision").value;
+            const accessCode = document.getElementById("memberAccessCode").value;
+            
+            if (!division) {
+                showNotification("Silakan pilih divisi", "error");
+                return;
+            }
+            
+            if (id) {
+                const index = members.findIndex(m => m.id == id);
+                if (index !== -1) {
+                    members[index] = { ...members[index], name, division, accessCode };
+                }
+            } else {
+                const newId = members.length > 0 ? Math.max(...members.map(m => m.id)) + 1 : 1;
+                members.push({ id: newId, name, division, accessCode });
+            }
+            
+            resetMemberForm();
+            renderMemberManagementTable();
+        }
+
+        function editMember(id) {
+            const member = members.find(m => m.id === id);
+            if (member) {
+                document.getElementById("memberId").value = member.id;
+                document.getElementById("memberName").value = member.name;
+                document.getElementById("memberDivision").value = member.division;
+                document.getElementById("memberAccessCode").value = member.accessCode;
+                document.getElementById("memberFormTitle").textContent = "Edit Anggota";
+                document.getElementById("memberSubmitBtn").textContent = "Simpan";
+                document.getElementById("memberCancelBtn").classList.remove("hidden");
+                populateMemberDivisionSelect();
+            }
+        }
+
+        function deleteMember(id) {
+            if (confirm("Apakah Anda yakin ingin menghapus anggota ini?")) {
+                members = members.filter(m => m.id !== id);
+                // Remove from events if they are part of any
+                events.forEach(event => {
+                    if (event.chair?.id === id) {
+                        // Clear chair if deleted
+                        event.chair = null;
+                    }
+                    event.members = event.members.filter(m => m.id !== id);
+                    // Remove from tasks
+                    event.tasks.forEach(task => {
+                        task.assignees = task.assignees.filter(a => a.id !== id);
+                    });
+                });
+                renderMemberManagementTable();
+            }
+        }
+
+        function resetMemberForm() {
+            document.getElementById("memberForm").reset();
+            document.getElementById("memberId").value = "";
+            document.getElementById("memberFormTitle").textContent = "Tambah Anggota Baru";
+            document.getElementById("memberSubmitBtn").textContent = "Tambah";
+            document.getElementById("memberCancelBtn").classList.add("hidden");
+            populateMemberDivisionSelect();
+        }
+
+        // --- PIMPINAN: EVENT CREATION ---
+        function setupChairDropdown() {
+            const container = document.getElementById('selectedChairContainer');
+            const dropdown = document.getElementById('chairDropdown');
+            
+            container.addEventListener('click', () => {
+                dropdown.classList.toggle('hidden');
+            });
+            
+            // Populate dropdown
+            dropdown.innerHTML = members.map(member => 
+                `<div class="px-4 py-2 hover:bg-gray-100 cursor-pointer" onclick="selectChair(${member.id})">${member.name} (${member.division})</div>`
+            ).join('');
+        }
+
+        function setupMembersDropdown() {
+            const container = document.getElementById('selectedMembersContainer');
+            const dropdown = document.getElementById('membersDropdown');
+            
+            container.addEventListener('click', () => {
+                dropdown.classList.toggle('hidden');
+            });
+            
+            // Populate dropdown
+            dropdown.innerHTML = members.map(member => 
+                `<div class="px-4 py-2 hover:bg-gray-100 cursor-pointer" onclick="selectMember(${member.id}, 'modal')">${member.name} (${member.division})</div>`
+            ).join('');
+        }
+
+        function setupMembersDropdownModal() {
+            const container = document.getElementById('selectedMembersContainerModal');
+            const dropdown = document.getElementById('membersDropdownModal');
+            
+            container.addEventListener('click', () => {
+                dropdown.classList.toggle('hidden');
+            });
+            
+            // Populate dropdown
+            dropdown.innerHTML = members.map(member => 
+                `<div class="px-4 py-2 hover:bg-gray-100 cursor-pointer" onclick="selectMember(${member.id}, 'modal')">${member.name} (${member.division})</div>`
+            ).join('');
+        }
+
+        function selectChair(memberId) {
+            const member = members.find(m => m.id === memberId);
+            if (!member) return;
+            
+            const container = document.getElementById('selectedChairContainer');
+            container.innerHTML = `<div class="tag">${member.name}<span class="tag-remove" onclick="removeChair()">×</span></div>`;
+            document.getElementById('chairDropdown').classList.add('hidden');
+        }
+
+        function removeChair() {
+            document.getElementById('selectedChairContainer').innerHTML = '';
+        }
+
+        function selectMember(memberId, context = 'modal') {
+            const member = members.find(m => m.id === memberId);
+            if (!member) return;
+            
+            const containerId = context === 'modal' ? 'selectedMembersContainerModal' : 'selectedMembersContainer';
+            const container = document.getElementById(containerId);
+            
+            // Check if already selected
+            if (container.innerHTML.includes(`data-id="${memberId}"`)) return;
+            
+            const tag = document.createElement('div');
+            tag.className = 'tag';
+            tag.setAttribute('data-id', memberId);
+            tag.innerHTML = `${member.name}<span class="tag-remove" onclick="removeMember(${memberId}, '${context}')">×</span>`;
+            container.appendChild(tag);
+            
+            const dropdownId = context === 'modal' ? 'membersDropdownModal' : 'membersDropdown';
+            document.getElementById(dropdownId).classList.add('hidden');
+        }
+
+        function removeMember(memberId, context = 'modal') {
+            const containerId = context === 'modal' ? 'selectedMembersContainerModal' : 'selectedMembersContainer';
+            const container = document.getElementById(containerId);
+            const tag = container.querySelector(`[data-id="${memberId}"]`);
+            if (tag) tag.remove();
+        }
+
+        function addNewEvent(e) {
+            e.preventDefault();
+            
+            const eventName = document.getElementById('eventName').value;
+            const eventDate = document.getElementById('eventDate').value;
+            const committeeName = document.getElementById('committeeName').value;
+            
+            // Get chair
+            const chairContainer = document.getElementById('selectedChairContainer');
+            const chairTag = chairContainer.querySelector('.tag');
+            if (!chairTag) {
+                showNotification("Silakan pilih ketua panitia", "error");
+                return;
+            }
+            
+            const chairName = chairTag.textContent.replace('×', '').trim();
+            const chair = members.find(m => m.name === chairName);
+            if (!chair) {
+                showNotification("Ketua tidak ditemukan", "error");
+                return;
+            }
+            
+            // Get members
+            const membersContainer = document.getElementById('selectedMembersContainerModal');
+            const memberTags = membersContainer.querySelectorAll('.tag');
+            const selectedMembers = [];
+            memberTags.forEach(tag => {
+                const name = tag.textContent.replace('×', '').trim();
+                const member = members.find(m => m.name === name);
+                if (member) selectedMembers.push(member);
+            });
+            
+            // Create event
+            const eventId = events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1;
+            events.push({
+                id: eventId,
+                name: eventName,
+                date: eventDate,
+                committeeName: committeeName,
+                chair: chair,
+                members: selectedMembers,
+                tasks: []
+            });
+            
+            showNotification(`Event "${eventName}" berhasil dibuat!`, 'success');
+            updateAllPimpinanDashboards();
+            closeEventModal();
+        }
+
+        function openEventModal() {
+            // Reset form
+            document.getElementById('addEventForm').reset();
+            document.getElementById('selectedChairContainer').innerHTML = '';
+            document.getElementById('selectedMembersContainerModal').innerHTML = '';
+            document.getElementById("eventModal").classList.remove("hidden");
+            document.getElementById("eventModal").classList.add("flex");
+        }
+
+        function closeEventModal() {
+            document.getElementById("eventModal").classList.add("hidden");
+            document.getElementById("eventModal").classList.remove("flex");
+        }
+
+        // --- PIMPINAN: DASHBOARD RENDERING ---
+        function updateAllPimpinanDashboards() {
+            updateDashboardStats();
+            renderEventProgress();
+            renderRecentActivities();
+            updateAllCountdowns();
+        }
+
+        function updateDashboardStats() {
+            const total = events.length;
+            const completed = events.filter(e => {
+                const eventDate = new Date(e.date + 'T23:59:59');
+                return eventDate < new Date() && e.tasks.every(t => t.status === 'completed');
+            }).length;
+            const inProgress = total - completed;
+            const avgProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            document.getElementById("totalEvents").textContent = total;
+            document.getElementById("completedEvents").textContent = completed;
+            document.getElementById("inProgressEvents").textContent = inProgress;
+            document.getElementById("avgProgress").textContent = `${avgProgress}%`;
+        }
+
+        function renderEventProgress() {
+            const container = document.getElementById('eventProgressContainer');
+            if (events.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-500 p-4">Belum ada event yang sedang berjalan.</div>`;
+                return;
+            }
+            
+            container.innerHTML = events.map((event, index) => {
+                const eventDate = new Date(event.date + 'T23:59:59');
+                const eventDateHasPassed = eventDate < new Date();
+                const totalTasks = event.tasks.length;
+                const completedTasks = event.tasks.filter(t => t.status === 'completed').length;
+                const totalPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                const tasksAreCompleted = totalPercentage === 100;
+                const isOverdue = eventDateHasPassed && !tasksAreCompleted;
+                
+                let countdownDiv;
+                if (isOverdue) {
+                    countdownDiv = `<div class="mt-2 text-sm font-semibold text-red-700">Event Terlambat</div>`;
+                } else if (eventDateHasPassed) {
+                    countdownDiv = `<div class="mt-2 text-sm font-semibold text-green-700">Event Selesai</div>`;
+                } else {
+                    countdownDiv = `<div class="mt-2 text-sm font-semibold ${tasksAreCompleted ? 'text-green-700' : 'text-blue-700'} countdown" data-deadline="${event.date}"></div>`;
+                }
+                
+                const memberNames = event.members.map(m => m.name).join(', ');
+                
+                return `
+                    <div class="rounded-lg border p-4 ${isOverdue ? 'bg-red-100 border-red-300' : (tasksAreCompleted ? 'bg-green-100 border-green-300' : 'bg-gray-50')}">
+                        <div id="event-${index}" class="cursor-pointer" onclick="toggleEventDetails('details-${index}', this)">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <h3 class="font-bold text-lg ${isOverdue ? 'text-red-800' : (tasksAreCompleted ? 'text-green-800' : 'text-gray-800')}">
+                                        ${isOverdue ? '⚠️ ' : (tasksAreCompleted ? '✅ ' : '')}${event.name}
+                                    </h3>
+                                    <div class="text-xs text-gray-500 mt-1 space-x-2">
+                                        <span>🗓️ ${formatDate(event.date)}</span>
+                                        <span class="text-blue-600">👥 ${event.committeeName}</span>
+                                        <span class="text-green-600">✓ ${completedTasks} Selesai</span>
+                                        <span class="text-yellow-600">⌛ ${totalTasks - completedTasks} Proses</span>
+                                    </div>
+                                    ${countdownDiv}
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="text-center">
+                                        <span class="text-lg font-bold ${isOverdue ? 'text-red-800' : (tasksAreCompleted ? 'text-green-800' : 'text-gray-900')}">${totalPercentage}%</span>
+                                        <div class="w-24 bg-gray-200 rounded-full h-1.5 mt-1 mx-auto">
+                                            <div class="progress-bar ${isOverdue ? 'bg-gradient-to-r from-red-500 to-red-600' : (tasksAreCompleted ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600')} h-1.5 rounded-full" style="width: ${totalPercentage}%"></div>
+                                        </div>
+                                    </div>
+                                    <svg class="w-5 h-5 text-gray-500 chevron ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="details-${index}" class="details-container mt-2 pt-3 border-t ${isOverdue ? 'border-red-300' : (tasksAreCompleted ? 'border-green-300' : 'border-gray-200')}">
+                            <div class="mb-2">
+                                <span class="font-medium text-gray-700">Ketua:</span> 
+                                <span class="text-gray-900">${event.chair?.name || 'Belum ditentukan'}</span>
+                            </div>
+                            <div class="mb-3">
+                                <span class="font-medium text-gray-700">Anggota:</span> 
+                                <span class="text-gray-900">${memberNames || 'Belum ada'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Tugas:</span>
+                                <div class="mt-2 space-y-1">
+                                    ${event.tasks.length > 0 ? 
+                                        event.tasks.map(task => 
+                                            `<div class="text-sm">
+                                                <span class="${task.status === 'completed' ? 'line-through text-green-600' : 'text-gray-700'}">${task.name}</span>
+                                                ${task.assignees.map(a => a.name).join(', ')}
+                                            </div>`
+                                        ).join('') : 
+                                        '<span class="text-gray-500">Belum ada tugas</span>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleEventDetails(detailsId, element) {
+            const details = document.getElementById(detailsId);
+            element.classList.toggle("open");
+            details.classList.toggle("open");
+        }
+
+        function renderRecentActivities() {
+            const container = document.getElementById("recentActivities");
+            const completedTasks = [];
+            events.forEach(event => {
+                event.tasks.forEach(task => {
+                    if (task.status === 'completed' && task.completedDate) {
+                        completedTasks.push({
+                            ...task,
+                            eventName: event.name,
+                            chair: event.chair
+                        });
+                    }
+                });
+            });
+            
+            const sortedTasks = completedTasks.sort((a, b) => new Date(b.completedDate) - new Date(a.completedDate)).slice(0, 5);
+            
+            container.innerHTML = sortedTasks.length === 0 ? 
+                '<div class="text-center text-gray-500 p-4">Belum ada aktivitas.</div>' :
+                sortedTasks.map(task => 
+                    `<div class="flex items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div class="bg-green-500 text-white p-2 rounded-full mr-3">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm text-blue-600 font-semibold">${task.eventName}</p>
+                            <p class="font-medium text-gray-900">${task.name}</p>
+                            <p class="text-sm text-gray-600">Oleh ${task.assignees.map(a => a.name).join(', ')} • ${formatDate(task.completedDate)}</p>
+                        </div>
+                    </div>`
+                ).join("");
+        }
+
+        // --- MEMBER: TASK MANAGEMENT ---
+        function renderMemberTaskList() {
+            const myTasks = [];
+            events.forEach(event => {
+                event.tasks.forEach(task => {
+                    if (task.assignees.some(a => a.id === loggedInUser.id)) {
+                        myTasks.push({ ...task, event });
+                    }
+                });
+            });
+            
+            const container = document.getElementById("taskList");
+            container.innerHTML = myTasks.length === 0 ? 
+                '<div class="text-center text-gray-500 p-10">Belum ada tugas untuk Anda.</div>' :
+                myTasks.map(task => 
+                    `<div class="task-card border border-gray-200 rounded-lg p-4 ${task.status === "completed" ? "bg-green-50 border-green-200" : "bg-white"}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                ${task.event.name ? `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200 last:mr-0 mr-1">${task.event.name}</span>` : ""}
+                                <h4 class="font-semibold text-gray-900 mt-2 ${task.status === "completed" ? "line-through text-gray-600" : ""}">${task.name}</h4>
+                                <p class="text-sm text-gray-600 mt-1">Ditugaskan: ${formatDate(task.assignedDate)}</p>
+                                ${task.deadline ? `<p class="text-sm text-red-600 mt-1 flex items-center">🚨 <span class="ml-1 countdown" data-deadline="${task.deadline}"></span></p>` : ""}
+                                ${task.status === "completed" && task.completedDate ? `<p class="text-sm text-green-600 mt-1">✓ Selesai: ${formatDate(task.completedDate)}</p>` : ""}
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                ${task.status === "completed" ? 
+                                    '<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">✓ Selesai</span>' : 
+                                    `<button onclick="completeTask(${task.id})" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all text-sm font-medium">📸 Selesaikan Tugas</button>`
+                                }
+                            </div>
+                        </div>
+                    </div>`
+                ).join("");
+            
+            updateAllCountdowns();
+            const completed = myTasks.filter(t => t.status === "completed").length;
+            document.getElementById("divisionCompletedTasks").textContent = `${completed}/${myTasks.length}`;
+        }
+
+        function completeTask(taskId) {
+            currentTaskId = taskId;
+            document.getElementById("photoModal").classList.add("flex");
+            document.getElementById("photoModal").classList.remove("hidden");
+        }
+
+        function closePhotoModal() {
+            document.getElementById("photoModal").classList.add("hidden");
+            document.getElementById("photoModal").classList.remove("flex");
+            document.getElementById("photoInput").value = "";
+            document.getElementById("photoDescription").value = "";
+            currentTaskId = null;
+        }
+
+        function submitPhoto() {
+            if (!document.getElementById("photoInput").files.length) {
+                showNotification("Mohon upload foto bukti penyelesaian!", "error");
+                return;
+            }
+            
+            // Find the task and update it
+            let taskFound = false;
+            events.forEach(event => {
+                const task = event.tasks.find(t => t.id === currentTaskId);
+                if (task) {
+                    task.status = "completed";
+                    task.completedDate = new Date().toISOString().split("T")[0];
+                    task.photo = true;
+                    task.photoUrl = "https://placehold.co/600x400/CCCCCC/333333?text=Bukti+Upload";
+                    taskFound = true;
+                }
+            });
+            
+            if (taskFound) {
+                updateAllPimpinanDashboards();
+                if (loggedInUser.role === 'member') {
+                    renderMemberTaskList();
+                }
+                closePhotoModal();
+                showNotification("Tugas berhasil diselesaikan!", "success");
+            }
+        }
+
+        // --- EVENT DETAIL VIEW ---
+        function showEventDetail(eventId) {
+            const event = events.find(e => e.id === eventId);
+            if (!event) return;
+            
+            currentEventId = eventId;
+            document.querySelectorAll('#mainApp > div[id$="View"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById("eventDetailView").classList.remove("hidden");
+            
+            document.getElementById("eventDetailTitle").textContent = event.name;
+            document.getElementById("eventDetailDate").textContent = `Tanggal: ${formatDate(event.date)}`;
+            
+            // Check if current user is chair or member
+            const isChair = event.chair?.id === loggedInUser.id;
+            const isMember = event.members.some(m => m.id === loggedInUser.id);
+            
+            if (isChair) {
+                document.getElementById("eventRoleInfo").innerHTML = '<span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Ketua Panitia</span>';
+                document.getElementById("ketuaView").classList.remove("hidden");
+                document.getElementById("anggotaView").classList.add("hidden");
+                renderAssignedTasks(event);
+            } else if (isMember) {
+                document.getElementById("eventRoleInfo").innerHTML = '<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">Anggota Panitia</span>';
+                document.getElementById("ketuaView").classList.add("hidden");
+                document.getElementById("anggotaView").classList.remove("hidden");
+                renderMyTasks(event);
+            } else {
+                // Not part of this event
+                document.getElementById("eventRoleInfo").innerHTML = '<span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">Tidak Terlibat</span>';
+                document.getElementById("ketuaView").classList.add("hidden");
+                document.getElementById("anggotaView").classList.add("hidden");
+            }
+        }
+
+        function renderAssignedTasks(event) {
+            const container = document.getElementById("assignedTasksList");
+            container.innerHTML = event.tasks.length === 0 ? 
+                '<div class="text-center text-gray-500 p-4">Belum ada tugas yang diberikan.</div>' :
+                event.tasks.map(task => 
+                    `<div class="border border-gray-200 rounded-lg p-4 ${task.status === "completed" ? "bg-green-50 border-green-200" : "bg-white"}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 ${task.status === "completed" ? "line-through text-gray-600" : ""}">${task.name}</h4>
+                                <p class="text-sm text-gray-600 mt-1">Untuk: ${task.assignees.map(a => a.name).join(', ')}</p>
+                                <p class="text-sm text-gray-600">Deadline: ${formatDate(task.deadline)}</p>
+                                ${task.status === "completed" && task.completedDate ? `<p class="text-sm text-green-600 mt-1">✓ Selesai: ${formatDate(task.completedDate)}</p>` : ""}
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                ${task.status === "completed" ? 
+                                    '<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">✓ Selesai</span>' : 
+                                    `<button onclick="confirmTaskCompletion(${task.id})" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all text-sm font-medium">Konfirmasi</button>`
+                                }
+                            </div>
+                        </div>
+                    </div>`
+                ).join("");
+        }
+
+        function renderMyTasks(event) {
+            const myTasks = event.tasks.filter(task => task.assignees.some(a => a.id === loggedInUser.id));
+            const container = document.getElementById("myTasksList");
+            container.innerHTML = myTasks.length === 0 ? 
+                '<div class="text-center text-gray-500 p-4">Belum ada tugas untuk Anda.</div>' :
+                myTasks.map(task => 
+                    `<div class="border border-gray-200 rounded-lg p-4 ${task.status === "completed" ? "bg-green-50 border-green-200" : "bg-white"}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 ${task.status === "completed" ? "line-through text-gray-600" : ""}">${task.name}</h4>
+                                <p class="text-sm text-gray-600 mt-1">Deadline: ${formatDate(task.deadline)}</p>
+                                ${task.status === "completed" && task.completedDate ? `<p class="text-sm text-green-600 mt-1">✓ Selesai: ${formatDate(task.completedDate)}</p>` : ""}
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                ${task.status === "completed" ? 
+                                    '<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">✓ Selesai</span>' : 
+                                    `<button onclick="completeTask(${task.id})" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all text-sm font-medium">📸 Selesaikan</button>`
+                                }
+                            </div>
+                        </div>
+                    </div>`
+                ).join("");
+        }
+
+        function confirmTaskCompletion(taskId) {
+            // Find the task and update status
+            events.forEach(event => {
+                const task = event.tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.status = "completed";
+                    task.completedDate = new Date().toISOString().split("T")[0];
+                }
+            });
+            
+            showNotification("Tugas berhasil dikonfirmasi selesai!", "success");
+            const event = events.find(e => e.id === currentEventId);
+            renderAssignedTasks(event);
+            updateAllPimpinanDashboards();
+        }
+
+        function assignTask(e) {
+            e.preventDefault();
+            
+            const taskName = document.getElementById('taskName').value;
+            const deadline = document.getElementById('taskDeadline').value;
+            
+            // Get selected members
+            const container = document.getElementById('selectedMembersContainer');
+            const memberTags = container.querySelectorAll('.tag');
+            const assignees = [];
+            memberTags.forEach(tag => {
+                const name = tag.textContent.replace('×', '').trim();
+                const member = members.find(m => m.name === name);
+                if (member) assignees.push(member);
+            });
+            
+            if (assignees.length === 0) {
+                showNotification("Silakan pilih minimal satu anggota", "error");
+                return;
+            }
+            
+            const event = events.find(e => e.id === currentEventId);
+            const taskId = event.tasks.length > 0 ? Math.max(...event.tasks.map(t => t.id)) + 1 : 1;
+            
+            event.tasks.push({
+                id: taskId,
+                name: taskName,
+                assignees: assignees,
+                status: 'in-progress',
+                assignedDate: new Date().toISOString().split("T")[0],
+                deadline: deadline,
+                photo: false,
+                photoUrl: null
+            });
+            
+            document.getElementById('assignTaskForm').reset();
+            document.getElementById('selectedMembersContainer').innerHTML = '';
+            renderAssignedTasks(event);
+            showNotification("Tugas berhasil dibuat!", "success");
+        }
+
+        // --- HELPER FUNCTIONS ---
+        function showNotification(text, type = "success") {
+            const notification = document.getElementById("notification");
+            const textEl = document.getElementById("notificationText");
+            textEl.textContent = text;
+            notification.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg notification ${type === "error" ? "bg-red-500" : "bg-green-500"}`;
+            notification.classList.remove("hidden");
+            setTimeout(() => notification.classList.add("hidden"), 3000);
+        }
+
+        function formatDate(dateString) {
+            return dateString ? new Date(dateString).toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" }) : "";
+        }
+
+        function closeProgressDetailModal() {
+            const modal = document.getElementById("progressDetailModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        // --- COUNTDOWN TIMER LOGIC ---
+        function startCountdownTimers() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownInterval = setInterval(updateAllCountdowns, 1000);
+        }
+
+        function updateAllCountdowns() {
+            document.querySelectorAll('.countdown').forEach(el => {
+                const deadline = el.dataset.deadline;
+                if (!deadline) return;
+                const deadlineTime = new Date(deadline + 'T23:59:59').getTime();
+                const now = new Date().getTime();
+                const distance = deadlineTime - now;
+                if (distance < 0) {
+                    el.innerHTML = "Waktu Habis";
+                    el.classList.add('text-red-700');
+                    return;
+                }
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                el.innerHTML = `${days}h ${hours}j ${minutes}m ${seconds}d`;
+            });
+        }
     </script>
 </body>
 </html>
-
