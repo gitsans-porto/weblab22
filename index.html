@@ -38,7 +38,7 @@
             <p class="text-gray-600 mb-6">Silakan masukkan kode akses Anda.</p>
             <form id="loginForm">
                 <input type="password" id="accessCode" class="w-full text-center tracking-widest font-bold text-lg border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="••••••">
-                <p class="text-xs text-gray-500 mt-2">Hint: `admin-123`, `pimpinan-123`, `ahmad-123`</p>
+                <p class="text-xs text-gray-500 mt-2">Hint: `admin-123`, `pimpinan-123`, `ahmad-123`, `budi-123`</p>
                 <p id="loginError" class="text-red-500 text-sm mt-2 hidden">Kode akses salah. Silakan coba lagi.</p>
                 <button type="submit" class="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl">
                     Masuk
@@ -153,13 +153,12 @@
                     </div>
                 </div>
                 <div id="memberEventsContainer" class="space-y-6">
-                    <!-- Event cards will be dynamically inserted here -->
                 </div>
             </div>
             <!-- Event Detail View -->
             <div id="eventDetailView" class="hidden fade-in">
-                <div class="flex items-center mb-4">
-                    <button onclick="renderPimpinanView()" class="text-blue-600 hover:underline">&larr; Kembali ke Dashboard Pimpinan</button>
+                <div id="backButtonContainer" class="mb-4">
+                    <!-- Tombol kembali akan dimasukkan di sini oleh JS -->
                 </div>
                 <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
                     <div class="flex items-center justify-between">
@@ -171,6 +170,7 @@
                         </div>
                     </div>
                 </div>
+                <!-- Tampilan untuk Ketua Panitia -->
                 <div id="ketuaView" class="hidden">
                     <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Buat Tugas untuk Anggota</h3>
@@ -195,16 +195,17 @@
                     </div>
                     <div class="bg-white rounded-xl shadow-md border border-gray-100">
                         <div class="p-6 border-b border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-900">📋 Tugas yang Diberikan</h3>
+                            <h3 class="text-lg font-semibold text-gray-900">📋 Monitoring Tugas Tim</h3>
                         </div>
                         <div class="p-6">
                             <div id="assignedTasksList" class="space-y-4"></div>
                         </div>
                     </div>
                 </div>
+                <!-- Tampilan untuk Anggota Panitia -->
                 <div id="anggotaView" class="hidden">
                     <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Tugas Anda</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Daftar Tugas Anda</h3>
                         <div id="myTasksList" class="space-y-4"></div>
                     </div>
                 </div>
@@ -323,14 +324,12 @@
             document.getElementById('divisionForm').addEventListener('submit', handleDivisionFormSubmit);
             document.getElementById('memberForm').addEventListener('submit', handleMemberFormSubmit);
             document.getElementById('assignTaskForm').addEventListener('submit', assignTask);
-            
             setupChairDropdown();
             setupMembersDropdownModal();
-            
             startCountdownTimers();
         });
 
-        // --- AUTHENTICATION & VIEW MANAGEMENT ---
+        // --- AUTH & VIEW MANAGEMENT ---
         function handleLogin(e) {
             e.preventDefault();
             const code = document.getElementById("accessCode").value;
@@ -694,39 +693,18 @@
 
             container.innerHTML = myEvents.map(event => {
                 const myRole = event.chair?.id === loggedInId ? "Ketua Panitia" : "Anggota";
-                
-                const myTasksInEvent = event.tasks.filter(task => 
-                    task.assignees.some(a => a.id === loggedInId)
-                );
+                const myTasksInEvent = event.tasks.filter(task => task.assignees.some(a => a.id === loggedInId));
 
                 totalTasks += myTasksInEvent.length;
                 completedTasks += myTasksInEvent.filter(t => t.status === 'completed').length;
 
-                const tasksHtml = myTasksInEvent.length === 0 
-                    ? '<p class="text-sm text-gray-500">Anda tidak memiliki tugas spesifik di event ini.</p>'
-                    : myTasksInEvent.map(task => `
-                        <div class="task-card border rounded-lg p-4 ${task.status === "completed" ? "bg-green-50" : "bg-white"} flex items-center justify-between">
-                            <div>
-                                <h4 class="font-semibold ${task.status === "completed" ? "line-through text-gray-500" : ""}">${task.name}</h4>
-                                <p class="text-sm text-red-600 mt-1 countdown" data-deadline="${task.deadline}"></p>
-                            </div>
-                            ${task.status !== "completed" ? `<button onclick="completeTask(${task.id})" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition">Selesaikan</button>` : `<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">Selesai</span>`}
-                        </div>
-                    `).join('');
-
                 return `
-                    <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                        <div class="p-6 border-b border-gray-200 bg-gray-50">
+                    <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg transition" onclick="showEventDetail(${event.id})">
+                        <div class="p-6">
                             <h3 class="text-xl font-bold text-gray-900">${event.name}</h3>
                             <div class="flex items-center justify-between mt-1">
                                 <p class="text-sm text-gray-600">Peran Anda: <span class="font-semibold ${myRole === 'Ketua Panitia' ? 'text-blue-600' : 'text-green-600'}">${myRole}</span></p>
                                 <p class="text-sm text-gray-500">🗓️ ${formatDate(event.date)}</p>
-                            </div>
-                        </div>
-                        <div class="p-6">
-                            <h4 class="text-md font-semibold text-gray-800 mb-4">Tugas Anda di Event Ini:</h4>
-                            <div class="space-y-4">
-                                ${tasksHtml}
                             </div>
                         </div>
                     </div>
@@ -776,34 +754,69 @@
             document.getElementById("eventDetailView").classList.remove("hidden");
             document.getElementById("eventDetailTitle").textContent = event.name;
             document.getElementById("eventDetailDate").textContent = `Tanggal: ${formatDate(event.date)}`;
-            const isChair = loggedInUser.id === event.chair?.id;
-            const isPimpinan = loggedInUser.role === 'pimpinan';
-            document.getElementById("ketuaView").classList.toggle('hidden', !(isChair || isPimpinan));
-            document.getElementById("anggotaView").classList.toggle('hidden', isChair || isPimpinan);
-            if (isChair || isPimpinan) {
-                document.getElementById("eventRoleInfo").innerHTML = isChair ? `<span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Ketua Panitia</span>` : `<span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">View Pimpinan</span>`;
-                document.getElementById("assignTaskForm").style.display = 'block';
-                const membersDropdown = document.getElementById('membersDropdown');
-                membersDropdown.innerHTML = event.members.map(member => `<div class="px-4 py-2 hover:bg-gray-100 cursor-pointer" onclick="selectMember(${member.id}, 'task')">${member.name}</div>`).join('');
-                document.getElementById('selectedMembersContainer').addEventListener('click', () => membersDropdown.classList.toggle('hidden'));
-                renderAssignedTasks(event);
+
+            // Dinamis mengatur tombol kembali
+            const backButtonContainer = document.getElementById('backButtonContainer');
+            if (loggedInUser.role === 'anggota') {
+                backButtonContainer.innerHTML = `<button onclick="renderAnggotaDashboard()" class="text-blue-600 hover:underline">&larr; Kembali ke Dashboard Saya</button>`;
             } else {
-                 document.getElementById("eventRoleInfo").innerHTML = `<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">Anggota Panitia</span>`;
+                backButtonContainer.innerHTML = `<button onclick="renderPimpinanView()" class="text-blue-600 hover:underline">&larr; Kembali ke Dashboard Pimpinan</button>`;
+            }
+
+            const isChair = loggedInUser.id === event.chair?.id;
+            const isMember = event.members.some(m => m.id === loggedInUser.id);
+            const isPimpinan = loggedInUser.role === 'pimpinan';
+
+            document.getElementById("ketuaView").classList.add('hidden');
+            document.getElementById("anggotaView").classList.add('hidden');
+
+            if (isChair || isPimpinan) {
+                document.getElementById("ketuaView").classList.remove('hidden');
+                document.getElementById("eventRoleInfo").innerHTML = isChair ? `<span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Ketua Panitia</span>` : `<span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">View Pimpinan</span>`;
+                
+                // Hanya ketua yang bisa membuat tugas
+                document.getElementById("assignTaskForm").style.display = isChair ? 'block' : 'none';
+                if(isChair) {
+                    const membersDropdown = document.getElementById('membersDropdown');
+                    membersDropdown.innerHTML = event.members.map(member => `<div class="px-4 py-2 hover:bg-gray-100 cursor-pointer" onclick="selectMember(${member.id}, 'task')">${member.name}</div>`).join('');
+                    document.getElementById('selectedMembersContainer').addEventListener('click', () => membersDropdown.classList.toggle('hidden'));
+                }
+                renderAssignedTasks(event);
+            } else if(isMember) {
+                document.getElementById("anggotaView").classList.remove('hidden');
+                document.getElementById("eventRoleInfo").innerHTML = `<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">Anggota Panitia</span>`;
                 renderMyTasks(event);
             }
         }
 
         function renderAssignedTasks(event) {
-             const container = document.getElementById("assignedTasksList");
-             container.innerHTML = event.tasks.length === 0 ? `<div class="text-center text-gray-500 p-4">Belum ada tugas.</div>` :
-                event.tasks.map(task => `<div class="border rounded-lg p-4 ${task.status === "completed" ? "bg-green-50" : "bg-white"}"><p class="font-semibold ${task.status === "completed" ? "line-through" : ""}">${task.name}</p><p class="text-sm text-gray-600">Untuk: ${task.assignees.map(a => a.name).join(', ')}</p><p class="text-sm text-red-500">Deadline: ${formatDate(task.deadline)}</p></div>`).join("");
+            const container = document.getElementById("assignedTasksList");
+            container.innerHTML = event.tasks.length === 0 ? `<div class="text-center text-gray-500 p-4">Belum ada tugas yang diberikan.</div>` :
+                event.tasks.map(task => `
+                    <div class="border rounded-lg p-4 ${task.status === "completed" ? "bg-green-50" : "bg-white"}">
+                        <p class="font-semibold ${task.status === "completed" ? "line-through text-gray-500" : ""}">${task.name}</p>
+                        <p class="text-sm text-gray-600">Untuk: ${task.assignees.map(a => a.name).join(', ')}</p>
+                        <p class="text-sm text-red-500">Deadline: ${formatDate(task.deadline)}</p>
+                        ${task.status === 'completed' ? `<p class="text-sm text-green-600 mt-1">✓ Selesai pada ${formatDate(task.completedDate)}</p>` : ''}
+                    </div>`
+                ).join("");
         }
         
         function renderMyTasks(event) {
             const myTasks = event.tasks.filter(task => task.assignees.some(a => a.id === loggedInUser.id));
             const container = document.getElementById("myTasksList");
-            container.innerHTML = myTasks.length === 0 ? `<div class="text-center text-gray-500 p-4">Belum ada tugas untuk Anda.</div>` :
-                myTasks.map(task => `<div class="border rounded-lg p-4 ${task.status === "completed" ? "bg-green-50" : "bg-white"}"><p class="font-semibold ${task.status === "completed" ? "line-through" : ""}">${task.name}</p><p class="text-sm text-red-500">Deadline: ${formatDate(task.deadline)}</p>${task.status !== "completed" ? `<button onclick="completeTask(${task.id})" class="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm">Selesaikan</button>` : `<p class="text-sm text-green-600 mt-2">Selesai pada ${formatDate(task.completedDate)}</p>`}</div>`).join('');
+            container.innerHTML = myTasks.length === 0 ? `<div class="text-center text-gray-500 p-4">Anda tidak memiliki tugas di event ini.</div>` :
+                myTasks.map(task => `
+                <div class="task-card border rounded-lg p-4 ${task.status === "completed" ? "bg-green-50" : "bg-white"}">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-semibold ${task.status === "completed" ? "line-through text-gray-500" : ""}">${task.name}</h4>
+                            <p class="text-sm text-red-600 mt-1 countdown" data-deadline="${task.deadline}"></p>
+                        </div>
+                        ${task.status !== "completed" ? `<button onclick="completeTask(${task.id})" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition">Selesaikan</button>` : `<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">Selesai</span>`}
+                    </div>
+                </div>`).join('');
+            updateAllCountdowns();
         }
         
         function assignTask(e) {
