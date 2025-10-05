@@ -240,6 +240,20 @@
             <div id="committeeDetailContent" class="modal-content flex-grow overflow-y-auto pr-2"></div>
         </div>
     </div>
+    <div id="proofDetailModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 max-w-2xl w-full mx-4" style="max-height: 90vh;">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 id="proofDetailTitle" class="text-xl font-semibold text-gray-900">Bukti Penyelesaian Tugas</h3>
+                <button onclick="closeProofDetailModal()" class="text-gray-500 hover:text-gray-800 font-bold">&times;</button>
+            </div>
+            <div id="proofDetailContent" class="overflow-y-auto" style="max-height: 70vh;">
+                <p class="font-medium text-gray-800 mb-2">Keterangan:</p>
+                <p id="proofDescription" class="text-gray-600 bg-gray-100 p-3 rounded-lg mb-4"></p>
+                <p class="font-medium text-gray-800 mb-2">Lampiran Foto:</p>
+                <img id="proofImage" src="" alt="Bukti Foto" class="rounded-lg w-full h-auto">
+            </div>
+        </div>
+    </div>
     <div id="notification" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden notification">
         <div class="flex items-center">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,8 +319,8 @@
                         chair: { id: 1, name: 'Ahmad Fauzi' },
                         members: [{ id: 2, name: 'Budi Santoso' }],
                         tasks: [
-                            { id: 1, name: 'Siapkan Halaman Website', assignees: [{ id: 2, name: 'Budi Santoso' }], status: 'completed', assignedDate: '2025-10-01', completedDate: '2025-10-03', deadline: '2025-10-10' },
-                            { id: 2, name: 'Uji Coba Server', assignees: [{ id: 1, name: 'Ahmad Fauzi' }], status: 'in-progress', assignedDate: '2025-10-05', completedDate: null, deadline: '2025-10-15' }
+                            { id: 1, name: 'Siapkan Halaman Website', assignees: [{ id: 2, name: 'Budi Santoso' }], status: 'completed', assignedDate: '2025-10-01', completedDate: '2025-10-03', deadline: '2025-10-10', photoUrl: 'https://placehold.co/600x400/1D4ED8/FFFFFF?text=Bukti+Website', photoDescription: 'Halaman landing page produk baru telah selesai dibuat dan diunggah ke server.' },
+                            { id: 2, name: 'Uji Coba Server', assignees: [{ id: 1, name: 'Ahmad Fauzi' }], status: 'in-progress', assignedDate: '2025-10-05', completedDate: null, deadline: '2025-10-15', photoUrl: null, photoDescription: null }
                         ]
                     },
                     {
@@ -315,7 +329,7 @@
                         chair: { id: 3, name: 'Citra Dewi' },
                         members: [{ id: 4, name: 'Dewi Lestari' }],
                         tasks: [
-                            { id: 3, name: 'Buat Kampanye Iklan Digital', assignees: [{ id: 4, name: 'Dewi Lestari' }], status: 'in-progress', assignedDate: '2025-10-01', completedDate: null, deadline: '2025-10-25' }
+                            { id: 3, name: 'Buat Kampanye Iklan Digital', assignees: [{ id: 4, name: 'Dewi Lestari' }], status: 'in-progress', assignedDate: '2025-10-01', completedDate: null, deadline: '2025-10-25', photoUrl: null, photoDescription: null }
                         ]
                     }
                 ]
@@ -699,13 +713,18 @@
             const contentEl = document.getElementById('committeeDetailContent');
             
             const membersList = committee.members.map(m => `<li class="text-gray-700">${m.name}</li>`).join('') || '<li class="text-gray-500">Tidak ada anggota.</li>';
-            const tasksList = committee.tasks.length > 0 ? committee.tasks.map(t => `
+            const tasksList = committee.tasks.length > 0 ? committee.tasks.map(t => {
+                const proofButton = (t.status === 'completed' && t.photoUrl)
+                    ? `<button onclick="openProofDetailModal(${event.id}, ${committee.id}, ${t.id})" class="mt-2 text-sm text-blue-600 hover:underline">Lihat Bukti</button>`
+                    : '';
+                return `
                 <div class="border-l-4 ${t.status === 'completed' ? 'border-green-500' : 'border-yellow-500'} pl-3 py-2">
                     <p class="font-medium">${t.name}</p>
                     <p class="text-sm text-gray-500">Untuk: ${t.assignees.map(a=>a.name).join(', ')}</p>
                     <p class="text-sm text-gray-500">Status: <span class="font-semibold ${t.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}">${t.status === 'completed' ? 'Selesai' : 'Berjalan'}</span></p>
+                    ${proofButton}
                 </div>
-            `).join('') : '<p class="text-gray-500">Belum ada tugas.</p>';
+            `}).join('') : '<p class="text-gray-500">Belum ada tugas.</p>';
 
             contentEl.innerHTML = `
                 <div class="mb-4">
@@ -728,6 +747,25 @@
         function closeCommitteeDetailModal() {
             document.getElementById('committeeDetailModal').classList.add('hidden');
             document.getElementById('committeeDetailModal').classList.remove('flex');
+        }
+
+        function openProofDetailModal(eventId, committeeId, taskId) {
+            const event = events.find(e => e.id === eventId);
+            const committee = event.committees.find(c => c.id === committeeId);
+            const task = committee.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            document.getElementById('proofDetailTitle').textContent = `Bukti Tugas: ${task.name}`;
+            document.getElementById('proofDescription').textContent = task.photoDescription || 'Tidak ada keterangan.';
+            document.getElementById('proofImage').src = task.photoUrl;
+
+            document.getElementById('proofDetailModal').classList.remove('hidden');
+            document.getElementById('proofDetailModal').classList.add('flex');
+        }
+
+        function closeProofDetailModal() {
+            document.getElementById('proofDetailModal').classList.add('hidden');
+            document.getElementById('proofDetailModal').classList.remove('flex');
         }
 
         function toggleEventDetails(detailsId, element) {
@@ -782,19 +820,27 @@
             document.getElementById("photoModal").classList.add("hidden");
             document.getElementById("photoModal").classList.remove("flex");
             document.getElementById("photoInput").value = "";
+            document.getElementById("photoDescription").value = "";
             currentTaskId = null;
         }
 
         function submitPhoto() {
             if (!document.getElementById("photoInput").files.length) return showNotification("Mohon upload foto bukti!", "error");
+            
+            const description = document.getElementById("photoDescription").value;
+
             for (const event of events) {
                 for (const committee of event.committees) {
                     const task = committee.tasks.find(t => t.id === currentTaskId);
                     if (task) {
                         task.status = "completed";
                         task.completedDate = new Date().toISOString().split("T")[0];
-                        task.photoUrl = "https://placehold.co/600x400/CCCCCC/333333?text=Bukti";
-                        showEventDetail(event.id, committee.id); // Refresh view
+                        task.photoUrl = `https://placehold.co/600x400/a8a29e/FFFFFF?text=Bukti+Tugas+${task.id}`; 
+                        task.photoDescription = description;
+                        
+                        if (document.getElementById('eventDetailView').classList.contains('hidden') === false) {
+                            showEventDetail(event.id, committee.id);
+                        }
                         break;
                     }
                 }
