@@ -266,11 +266,12 @@
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl mx-4 flex flex-col" style="height: 90vh;">
             <div class="p-6 border-b">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-gray-800">Buat Event & Kepanitiaan</h2>
+                    <h2 id="eventModalTitle" class="text-xl font-bold text-gray-800">Buat Event & Kepanitiaan</h2>
                     <button onclick="closeEventModal()" class="text-gray-500 hover:text-gray-800">&times;</button>
                 </div>
             </div>
             <form id="addEventForm" class="flex-grow contents">
+                 <input type="hidden" id="editEventId">
                 <div class="p-6 modal-content overflow-y-auto">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
@@ -289,7 +290,7 @@
                     <button type="button" onclick="addCommitteeForm()" class="mt-4 w-full bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition">+ Tambah Kepanitiaan</button>
                 </div>
                 <div class="p-6 border-t bg-gray-50 rounded-b-2xl">
-                    <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all">Buat Event</button>
+                    <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all">Simpan Event</button>
                 </div>
             </form>
         </div>
@@ -345,7 +346,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('loginForm').addEventListener('submit', handleLogin);
             document.getElementById('logoutBtn').addEventListener('click', logout);
-            document.getElementById('addEventForm').addEventListener('submit', addNewEvent);
+            document.getElementById('addEventForm').addEventListener('submit', handleEventFormSubmit);
             document.getElementById('divisionForm').addEventListener('submit', handleDivisionFormSubmit);
             document.getElementById('memberForm').addEventListener('submit', handleMemberFormSubmit);
             document.getElementById('assignTaskForm').addEventListener('submit', assignTask);
@@ -529,16 +530,17 @@
             document.getElementById("memberCancelBtn").classList.add("hidden");
         }
 
-        // --- PIMPINAN: EVENT CREATION ---
-        function addCommitteeForm() {
+        // --- PIMPINAN: EVENT CREATION & EDIT ---
+        function addCommitteeForm(committeeData = null) {
             committeeCounter++;
             const container = document.getElementById('committeesContainer');
             const formHtml = `
                 <div class="committee-form border p-4 rounded-lg bg-gray-50 relative" id="committee-form-${committeeCounter}">
                     <button type="button" onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 hover:text-red-700 font-bold">&times;</button>
+                    <input type="hidden" class="committee-id" value="${committeeData?.id || ''}">
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nama Tim Kepanitiaan</label>
-                        <input type="text" required class="w-full border committee-name border-gray-300 rounded-lg px-3 py-2" placeholder="Contoh: Tim Acara">
+                        <input type="text" required class="w-full border committee-name border-gray-300 rounded-lg px-3 py-2" placeholder="Contoh: Tim Acara" value="${committeeData?.name || ''}">
                     </div>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ketua Panitia</label>
@@ -566,6 +568,15 @@
             const membersDropdown = document.getElementById(`members-dropdown-${committeeCounter}`);
             membersContainer.addEventListener('click', () => membersDropdown.classList.toggle('hidden'));
             membersDropdown.innerHTML = members.map(m => `<div class="px-4 py-2 hover:bg-gray-100 cursor-pointer" onclick="selectModalMember(${m.id}, ${committeeCounter})">${m.name}</div>`).join('');
+
+            if (committeeData) {
+                if (committeeData.chair) {
+                    selectModalChair(committeeData.chair.id, committeeCounter);
+                }
+                committeeData.members.forEach(member => {
+                    selectModalMember(member.id, committeeCounter);
+                });
+            }
         }
 
         function selectModalChair(memberId, counter) {
@@ -585,51 +596,78 @@
             container.insertAdjacentHTML('beforeend', tagHtml);
         }
 
-        function openEventModal() {
+        function openEventModal(eventId = null) {
             document.getElementById('addEventForm').reset();
             document.getElementById('committeesContainer').innerHTML = '';
             committeeCounter = 0;
-            addCommitteeForm();
+
+            if (eventId) {
+                const eventToEdit = events.find(e => e.id === eventId);
+                document.getElementById('eventModalTitle').textContent = "Edit Event";
+                document.getElementById('editEventId').value = eventId;
+                document.getElementById('eventName').value = eventToEdit.name;
+                document.getElementById('eventDate').value = eventToEdit.date;
+                eventToEdit.committees.forEach(committee => addCommitteeForm(committee));
+            } else {
+                document.getElementById('eventModalTitle').textContent = "Buat Event & Kepanitiaan";
+                document.getElementById('editEventId').value = "";
+                addCommitteeForm();
+            }
+            
             document.getElementById("eventModal").classList.remove("hidden");
             document.getElementById("eventModal").classList.add("flex");
         }
         
-        function addNewEvent(e) {
+        function handleEventFormSubmit(e) {
             e.preventDefault();
             const eventName = document.getElementById('eventName').value;
             const eventDate = document.getElementById('eventDate').value;
+            const eventIdToEdit = document.getElementById('editEventId').value;
 
             const committeeForms = document.querySelectorAll('.committee-form');
             if(committeeForms.length === 0) return showNotification("Tambahkan minimal satu kepanitiaan.", "error");
 
-            const newCommittees = [];
             let isValid = true;
-            committeeForms.forEach((form, index) => {
+            const updatedCommittees = Array.from(committeeForms).map((form, index) => {
                 const name = form.querySelector('.committee-name').value;
                 const chairTag = form.querySelector('.selected-chair-container .tag');
                 if (!name || !chairTag) {
                     isValid = false;
-                    return;
+                    return null;
                 }
                 const chair = members.find(m => m.id == chairTag.dataset.id);
                 const memberTags = form.querySelectorAll('.selected-members-container .tag');
                 const selectedMembers = Array.from(memberTags).map(tag => members.find(m => m.id == tag.dataset.id)).filter(Boolean);
+                const existingId = form.querySelector('.committee-id').value;
 
-                newCommittees.push({
-                    id: Date.now() + index,
-                    name,
-                    chair,
-                    members: selectedMembers,
-                    tasks: []
-                });
-            });
+                return {
+                    id: existingId ? parseInt(existingId) : Date.now() + index,
+                    name, chair, members: selectedMembers, tasks: [] 
+                };
+            }).filter(Boolean);
+
 
             if (!isValid) return showNotification("Setiap panitia harus memiliki nama dan ketua.", "error");
 
-            const eventId = events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1;
-            events.push({ id: eventId, name: eventName, date: eventDate, committees: newCommittees });
+            if (eventIdToEdit) { // Edit mode
+                const eventIndex = events.findIndex(e => e.id == eventIdToEdit);
+                if (eventIndex !== -1) {
+                    const originalEvent = events[eventIndex];
+                    updatedCommittees.forEach(uc => {
+                        const originalCommittee = originalEvent.committees.find(oc => oc.id === uc.id);
+                        if (originalCommittee) {
+                            uc.tasks = originalCommittee.tasks; // Preserve existing tasks
+                        }
+                    });
+                    events[eventIndex] = { ...originalEvent, name: eventName, date: eventDate, committees: updatedCommittees };
+                    showNotification(`Event "${eventName}" berhasil diperbarui!`, 'success');
+                }
+            } else { // Create mode
+                const eventId = events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1;
+                events.push({ id: eventId, name: eventName, date: eventDate, committees: updatedCommittees });
+                showNotification(`Event "${eventName}" berhasil dibuat!`, 'success');
+            }
             
-            showNotification(`Event "${eventName}" berhasil dibuat!`, 'success');
             updateAllPimpinanDashboards();
             closeEventModal();
         }
@@ -638,6 +676,21 @@
             document.getElementById("eventModal").classList.add("hidden");
             document.getElementById("eventModal").classList.remove("flex");
         }
+
+        function editEvent(event, eventId) {
+            event.stopPropagation();
+            openEventModal(eventId);
+        }
+
+        function deleteEvent(event, eventId) {
+            event.stopPropagation();
+            if (confirm("Anda yakin ingin menghapus event ini? Semua data terkait akan hilang secara permanen.")) {
+                events = events.filter(e => e.id !== eventId);
+                renderPimpinanView();
+                showNotification("Event berhasil dihapus.", "success");
+            }
+        }
+
 
         // --- PIMPINAN: DASHBOARD RENDERING ---
         function updateAllPimpinanDashboards() {
@@ -698,7 +751,11 @@
                         </div>
                         <div id="details-${index}" class="details-container mt-3 pt-3 border-t">
                              <h4 class="font-semibold text-sm mb-2">Kepanitiaan:</h4>
-                             <div class="space-y-2">${committeeListHtml}</div>
+                             <div class="space-y-2 mb-4">${committeeListHtml}</div>
+                             <div class="flex space-x-2 pt-3 border-t">
+                                <button onclick="editEvent(event, ${event.id})" class="text-sm bg-yellow-500 text-white px-3 py-1 rounded-md hover:bg-yellow-600">Edit Event</button>
+                                <button onclick="deleteEvent(event, ${event.id})" class="text-sm bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600">Hapus Event</button>
+                             </div>
                         </div>
                     </div>`;
                 }).join('');
