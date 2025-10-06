@@ -682,13 +682,14 @@
             openEventModal(eventId);
         }
 
+        // --- PERBAIKAN --- Menghapus `confirm` yang memblokir fungsi
         function deleteEvent(event, eventId) {
             event.stopPropagation();
-            if (confirm("Anda yakin ingin menghapus event ini? Semua data terkait akan hilang secara permanen.")) {
-                events = events.filter(e => e.id !== eventId);
-                renderPimpinanView();
-                showNotification("Event berhasil dihapus.", "success");
-            }
+            // Dialog `confirm` dihapus karena tidak berfungsi di lingkungan ini dan menyebabkan tombol tidak responsif.
+            // Untuk production, sebaiknya implementasikan modal konfirmasi custom di sini.
+            events = events.filter(e => e.id !== eventId);
+            renderPimpinanView();
+            showNotification("Event berhasil dihapus.", "success");
         }
 
 
@@ -719,16 +720,17 @@
             document.getElementById("avgProgress").textContent = `${totalEvents > 0 ? Math.round((totalProgress / totalEvents) * 100) : 0}%`;
         }
 
+        // --- PERBAIKAN --- Mengganti nama variabel `event` untuk menghindari konflik
         function renderEventProgress() {
             const container = document.getElementById('eventProgressContainer');
             container.innerHTML = events.length === 0 ? `<div class="text-center text-gray-500 p-4">Belum ada event.</div>` :
-                events.map((event, index) => {
-                    const allTasks = event.committees.flatMap(c => c.tasks);
+                events.map((eventData, index) => { // Mengganti 'event' menjadi 'eventData'
+                    const allTasks = eventData.committees.flatMap(c => c.tasks);
                     const completedTasks = allTasks.filter(t => t.status === 'completed').length;
                     const progress = allTasks.length > 0 ? Math.round((completedTasks / allTasks.length) * 100) : 0;
                     
-                    const committeeListHtml = event.committees.map(committee => `
-                        <div class="bg-white p-3 rounded-lg border hover:bg-gray-100 cursor-pointer" onclick="openCommitteeDetailModal(${event.id}, ${committee.id})">
+                    const committeeListHtml = eventData.committees.map(committee => `
+                        <div class="bg-white p-3 rounded-lg border hover:bg-gray-100 cursor-pointer" onclick="openCommitteeDetailModal(${eventData.id}, ${committee.id})">
                             <p class="font-semibold text-gray-800">${committee.name}</p>
                             <p class="text-xs text-gray-500">Ketua: ${committee.chair.name}</p>
                         </div>
@@ -738,8 +740,8 @@
                     <div class="rounded-lg border p-4 bg-gray-50">
                         <div class="flex items-start justify-between cursor-pointer" onclick="toggleEventDetails('details-${index}', this)">
                             <div>
-                                <h3 class="font-bold text-lg">${event.name}</h3>
-                                <div class="text-xs text-gray-500 mt-1">🗓️ ${formatDate(event.date)}</div>
+                                <h3 class="font-bold text-lg">${eventData.name}</h3>
+                                <div class="text-xs text-gray-500 mt-1">🗓️ ${formatDate(eventData.date)}</div>
                             </div>
                             <div class="flex items-center">
                                 <div class="text-center">
@@ -753,8 +755,8 @@
                              <h4 class="font-semibold text-sm mb-2">Kepanitiaan:</h4>
                              <div class="space-y-2 mb-4">${committeeListHtml}</div>
                              <div class="flex space-x-2 pt-3 border-t">
-                                <button onclick="editEvent(event, ${event.id})" class="text-sm bg-yellow-500 text-white px-3 py-1 rounded-md hover:bg-yellow-600">Edit Event</button>
-                                <button onclick="deleteEvent(event, ${event.id})" class="text-sm bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600">Hapus Event</button>
+                                <button onclick="editEvent(event, ${eventData.id})" class="text-sm bg-yellow-500 text-white px-3 py-1 rounded-md hover:bg-yellow-600">Edit Event</button>
+                                <button onclick="deleteEvent(event, ${eventData.id})" class="text-sm bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600">Hapus Event</button>
                              </div>
                         </div>
                     </div>`;
@@ -994,7 +996,7 @@
         function showNotification(text, type = "success") {
             const el = document.getElementById("notification");
             el.querySelector('span').textContent = text;
-            el.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg notification ${type === "error" ? "bg-red-500" : "bg-green-500"}`;
+            el.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg notification ${type === "error" ? "bg-red-500" : "bg-red-500"}`;
             el.classList.remove("hidden");
             setTimeout(() => el.classList.add("hidden"), 3000);
         }
@@ -1029,4 +1031,3 @@
     </script>
 </body>
 </html>
-
