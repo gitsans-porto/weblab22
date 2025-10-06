@@ -38,7 +38,6 @@
             <p class="text-gray-600 mb-6">Silakan masukkan kode akses Anda.</p>
             <form id="loginForm">
                 <input type="password" id="accessCode" class="w-full text-center tracking-widest font-bold text-lg border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="••••••">
-                <p class="text-xs text-gray-500 mt-2">Hint: `admin-123`, `pimpinan-123`, `ahmad-123`, `budi-123`</p>
                 <p id="loginError" class="text-red-500 text-sm mt-2 hidden">Kode akses salah. Silakan coba lagi.</p>
                 <button type="submit" class="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl">
                     Masuk
@@ -682,11 +681,8 @@
             openEventModal(eventId);
         }
 
-        // --- PERBAIKAN --- Menghapus `confirm` yang memblokir fungsi
         function deleteEvent(event, eventId) {
             event.stopPropagation();
-            // Dialog `confirm` dihapus karena tidak berfungsi di lingkungan ini dan menyebabkan tombol tidak responsif.
-            // Untuk production, sebaiknya implementasikan modal konfirmasi custom di sini.
             events = events.filter(e => e.id !== eventId);
             renderPimpinanView();
             showNotification("Event berhasil dihapus.", "success");
@@ -720,11 +716,10 @@
             document.getElementById("avgProgress").textContent = `${totalEvents > 0 ? Math.round((totalProgress / totalEvents) * 100) : 0}%`;
         }
 
-        // --- PERBAIKAN --- Mengganti nama variabel `event` untuk menghindari konflik
         function renderEventProgress() {
             const container = document.getElementById('eventProgressContainer');
             container.innerHTML = events.length === 0 ? `<div class="text-center text-gray-500 p-4">Belum ada event.</div>` :
-                events.map((eventData, index) => { // Mengganti 'event' menjadi 'eventData'
+                events.map((eventData, index) => { 
                     const allTasks = eventData.committees.flatMap(c => c.tasks);
                     const completedTasks = allTasks.filter(t => t.status === 'completed').length;
                     const progress = allTasks.length > 0 ? Math.round((completedTasks / allTasks.length) * 100) : 0;
@@ -996,7 +991,7 @@
         function showNotification(text, type = "success") {
             const el = document.getElementById("notification");
             el.querySelector('span').textContent = text;
-            el.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg notification ${type === "error" ? "bg-red-500" : "bg-red-500"}`;
+            el.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg notification ${type === "error" ? "bg-red-500" : "bg-green-500"}`;
             el.classList.remove("hidden");
             setTimeout(() => el.classList.add("hidden"), 3000);
         }
@@ -1031,3 +1026,4 @@
     </script>
 </body>
 </html>
+
